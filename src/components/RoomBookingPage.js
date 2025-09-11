@@ -197,28 +197,29 @@ const PopoverContent = ({ children, className = '' }) => {
 export default function RoomBookingPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedRoom, setSelectedRoom] = useState('room-a');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [bookingMessage, setBookingMessage] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
-  const [bookings, setBookings] = useState({}); // { 'yyyy-MM-dd': ['09:00 AM', ...] }
+  const [bookings, setBookings] = useState({}); // { 'yyyy-MM-dd:room-id': ['09:00 AM', ...] }
 
-  // Load bookings for selected date from Supabase
+  // Load bookings for selected date+room from Supabase
   useEffect(() => {
     const load = async () => {
-      if (!supabase || !selectedDate) return;
+      if (!supabase || !selectedDate || !selectedRoom) return;
       const dateKey = format(selectedDate, 'yyyy-MM-dd');
       const { data, error } = await supabase
         .from('bookings')
         .select('booking_time')
-        .eq('room_id', 'default')
+        .eq('room_id', selectedRoom)
         .eq('booking_date', dateKey);
       if (!error && Array.isArray(data)) {
-        setBookings((prev) => ({ ...prev, [dateKey]: data.map(r => r.booking_time) }));
+        setBookings((prev) => ({ ...prev, [`${dateKey}:${selectedRoom}`]: data.map(r => r.booking_time) }));
       }
     };
     load();
-  }, [selectedDate]);
+  }, [selectedDate, selectedRoom]);
 
   const availableTimes = [
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -234,7 +235,8 @@ export default function RoomBookingPage() {
     }
     
     const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-    const bookedTimesForDate = (dateKey && bookings[dateKey]) ? bookings[dateKey] : [];
+    const bookingsKey = dateKey && selectedRoom ? `${dateKey}:${selectedRoom}` : null;
+    const bookedTimesForDate = (bookingsKey && bookings[bookingsKey]) ? bookings[bookingsKey] : [];
     if (bookedTimesForDate.includes(selectedTime)) {
       setBookingMessage('That time is already booked for the selected date.');
       return;
@@ -242,7 +244,7 @@ export default function RoomBookingPage() {
     // Persist booking to Supabase
     if (supabase) {
       const { error } = await supabase.from('bookings').insert({
-        room_id: 'default',
+        room_id: selectedRoom,
         booking_date: dateKey,
         booking_time: selectedTime,
         name,
@@ -262,8 +264,10 @@ export default function RoomBookingPage() {
     // Optimistically update local state after successful insert
     setBookings((prev) => {
       const next = { ...prev };
-      const existing = next[dateKey] || [];
-      next[dateKey] = existing.includes(selectedTime) ? existing : [...existing, selectedTime];
+      const existing = bookingsKey ? (next[bookingsKey] || []) : [];
+      if (bookingsKey) {
+        next[bookingsKey] = existing.includes(selectedTime) ? existing : [...existing, selectedTime];
+      }
       return next;
     });
 
@@ -330,13 +334,35 @@ export default function RoomBookingPage() {
               </div>
 
               <div className="mb-6">
+                <Label className="mb-3 block">Room</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+                  {[
+                    { id: 'room-a', label: 'Room A' },
+                    { id: 'room-b', label: 'Room B' },
+                    { id: 'room-c', label: 'Room C' },
+                    { id: 'room-d', label: 'Room D' }
+                  ].map((room) => (
+                    <Button
+                      key={room.id}
+                      variant={selectedRoom === room.id ? 'default' : 'outline'}
+                      onClick={() => setSelectedRoom(room.id)}
+                      className="w-full"
+                    >
+                      {room.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-6">
                 <Label className="mb-3 block flex items-center">
                   <Clock className="mr-2 h-4 w-4" />
                   Available Times
                 </Label>
                 {(() => {
                   const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-                  const bookedTimesForDate = (dateKey && bookings[dateKey]) ? bookings[dateKey] : [];
+                  const bookingsKey = dateKey && selectedRoom ? `${dateKey}:${selectedRoom}` : null;
+                  const bookedTimesForDate = (bookingsKey && bookings[bookingsKey]) ? bookings[bookingsKey] : [];
                   return (
                     <>
                       <div className="grid grid-cols-3 gap-2">
