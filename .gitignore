@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Production build
+build/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Vercel local files
+.vercel/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+
