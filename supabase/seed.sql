@@ -9,7 +9,7 @@ INSERT INTO public.person (name, email) VALUES
 -- Seed data for the 'rooms' table
 -- avail_start and avail_end are example timestamps and can be adjusted.
 INSERT INTO public.rooms (name, capacity, avail_start, avail_end) VALUES
-('The Foursquare', 4, '2025-01-01 09:00:00-08', '2025-12-31 17:00:00-08'),
-('Quad-ratic Analysis', 4, '2025-01-01 09:00:00-08', '2025-12-31 17:00:00-08'),
-('The Data Octagon', 8, '2025-01-01 08:00:00-08', '2025-12-31 20:00:00-08'),
-('Binary Booth', 2, '2025-01-01 08:00:00-08', '2025-12-31 20:00:00-08');
+('Hearst Huddle Room', 4, '2025-01-01 09:00:00-08', '2025-12-31 17:00:00-08'),
+('Coach Corner', 4, '2025-01-01 09:00:00-08', '2025-12-31 17:00:00-08'),
+('Founders Conference Room', 8, '2025-01-01 08:00:00-08', '2025-12-31 20:00:00-08'),
+('Common Area Table', 8, '2025-01-01 08:00:00-08', '2025-12-31 20:00:00-08');

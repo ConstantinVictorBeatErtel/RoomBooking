@@ -109,6 +109,46 @@ The form submission function should now be an async function that calls supabase
 
 ---
 
+## Fix Available Times Rendering and Bug
+
+**Status:** ✅ COMPLETED
+
+### Requirements
+
+Available Times should be rendered in a user-friendly way, without disrupting the
+calculation of available times for a room booking.
+
+### Description
+
+- The constant @AVAILABLE_TIMES details the times that you can book a room
+- We should replace it with the available times for each room from the `rooms` table,
+  where it is stored as a timestamp with timezone (UTC). Those times need to be
+  converted to Pacific Standard Timezone, which is where our building is
+- Next, we need to display those possible times in 1 hours chunks as:
+  - 09:00 AM
+  - 10:00 AM
+  - ...
+  - 01:00 PM
+    So, 5 total characters, and then an AM and PM
+- Finally, when calculating the Available Times in what the RoomBookingPage
+  component returns, when we create the const `bookedTimesForDate`, and check if the
+  `bookedTimesForDate` to assert `isBooked`, we need to ensure we are accurately
+  checking consistent types. Previously, we had defined available times as the strings
+  of `09:00 AM`, but the value of `time` the user selected as 13:00, for example.
+
+### Acceptance Criteria
+
+- [x] All times are displayed in PST (given that database stores UTC)
+- [x] All available times are displayed in 1 hour chunks as `HH:MM AM` or `HH:MM PM`
+- [x] The comparison that validates whether a time is booked or not needs to occur accurately
+- [x] Available Times need to be pulled from each room's availability
+
+### Implementation Notes
+
+- Note that rooms stores availability as avail_start and avail_end, which includes a date component. The date component can be discarded for now.
+
+---
+
 ## Send Confirmation Email
 
 **Status:** 🔴 TODO

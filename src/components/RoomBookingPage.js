@@ -8,10 +8,45 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { toZonedTime, format as formatTz } from "date-fns-tz";
+
+// Utility functions for time handling
+const PST_TIMEZONE = "America/Los_Angeles";
+
+// Generate available times for a room based on avail_start and avail_end
+const generateAvailableTimes = (availStart, availEnd) => {
+if (!availStart || !availEnd) return [];
+
+const startTime = parseISO(availStart);
+const endTime = parseISO(availEnd);
+
+// Convert to PST and extract only the time components (discard date)
+const startPST = toZonedTime(startTime, PST_TIMEZONE);
+const endPST = toZonedTime(endTime, PST_TIMEZONE);
+
+// Create times using only the hour/minute from the availability timestamps
+const startHour = startPST.getHours();
+const endHour = endPST.getHours();
+
+const times = [];
+for (let hour = startHour; hour < endHour; hour++) {
+const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+times.push(timeString);
+}
+
+return times;
+};
+
+// Format time for display (HH:MM AM/PM)
+const formatTimeForDisplay = (timeString) => {
+  const [hours, minutes] = timeString.split(":");
+  const date = new Date();
+  date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+  return format(date, "hh:mm aa");
+};
 
 // Check if supabase client is initialized
-console.log("Supbase client in RoomBookingPage.js", supabase);
 if (!supabase) {
   console.error("Supabase client is not initialized");
 } else {
@@ -269,10 +304,10 @@ export default function RoomBookingPage() {
           .select("*")
           .order("name");
 
-        // Fetch rooms
+        // Fetch rooms with availability
         const { data: roomsData, error: roomsError } = await supabase
           .from("rooms")
-          .select("*")
+          .select("id, name, capacity, avail_start, avail_end")
           .order("name");
 
         if (peopleError) {
@@ -319,18 +354,6 @@ export default function RoomBookingPage() {
     };
     load();
   }, [selectedDate, selectedRoom]);
-
-  const availableTimes = [
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "01:00 PM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
-    "05:00 PM",
-  ];
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
@@ -490,6 +513,17 @@ export default function RoomBookingPage() {
                   Available Times
                 </Label>
                 {(() => {
+                  // Get available times for selected room
+                  const selectedRoomData = rooms.find(
+                    (room) => room.id === selectedRoom
+                  );
+                  const availableTimes = selectedRoomData
+                    ? generateAvailableTimes(
+                        selectedRoomData.avail_start,
+                        selectedRoomData.avail_end
+                      )
+                    : [];
+
                   const dateKey = selectedDate
                     ? format(selectedDate, "yyyy-MM-dd")
                     : null;
@@ -522,7 +556,7 @@ export default function RoomBookingPage() {
                                   : ""
                               }`}
                             >
-                              {time}
+                              {formatTimeForDisplay(time)}
                             </Button>
                           );
                         })}
@@ -555,7 +589,9 @@ export default function RoomBookingPage() {
                         setSelectedPersonId(personId);
                         // Auto-populate email from selected person
                         if (personId) {
-                          const selectedPerson = people.find(p => p.id === parseInt(personId));
+                          const selectedPerson = people.find(
+                            (p) => p.id === parseInt(personId)
+                          );
                           setEmail(selectedPerson ? selectedPerson.email : "");
                         } else {
                           setEmail("");
@@ -582,7 +618,11 @@ export default function RoomBookingPage() {
                   placeholder="Select a person to auto-fill email"
                   readOnly
                   disabled={!selectedPersonId}
-                  className={!selectedPersonId ? "bg-gray-100 cursor-not-allowed" : "bg-gray-50"}
+                  className={
+                    !selectedPersonId
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : "bg-gray-50"
+                  }
                   required
                 />
 
