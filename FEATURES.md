@@ -84,6 +84,31 @@ The form submission function should now be an async function that calls supabase
 
 ---
 
+## Fix Aesthetic Bugs
+
+**Status:** 🟢 Done
+
+### Requirements
+
+- Booked Times do not get grayed out on the application
+- Room Name doesn't wrap within the box
+- Auto-load email from persons table, since person always has email, and do not allow
+  edit
+
+### Acceptance Criteria
+
+- [x] Booked Times are correctly grayed out, and do not allow the user to select it,
+      with a cursor-not-allowed css
+- [x] Overall width should be adjusted so the room name does not wrap
+- [x] Emails are not editable
+- [x] Emails are auto-populated on the form
+
+### Implementation Notes
+
+- Use the MCP tool playwright available on Cursor to check out the frontend
+
+---
+
 ## Send Confirmation Email
 
 **Status:** 🔴 TODO

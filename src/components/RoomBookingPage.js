@@ -467,7 +467,7 @@ export default function RoomBookingPage() {
                     Loading rooms...
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+                  <div className="flex flex-wrap gap-2 mb-6">
                     {rooms.map((room) => (
                       <Button
                         key={room.id}
@@ -475,7 +475,7 @@ export default function RoomBookingPage() {
                           selectedRoom === room.id ? "default" : "outline"
                         }
                         onClick={() => setSelectedRoom(room.id)}
-                        className="w-full"
+                        className="flex-shrink-0 whitespace-nowrap px-6"
                       >
                         {room.name}
                       </Button>
@@ -518,7 +518,7 @@ export default function RoomBookingPage() {
                               disabled={isBooked}
                               className={`w-full ${
                                 isBooked
-                                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60 hover:bg-gray-100 hover:text-gray-400"
+                                  ? "!bg-gray-200 !text-gray-500 !border-gray-300 !cursor-not-allowed !opacity-50 hover:!bg-gray-200 hover:!text-gray-500 hover:!border-gray-300"
                                   : ""
                               }`}
                             >
@@ -550,7 +550,17 @@ export default function RoomBookingPage() {
                   ) : (
                     <select
                       value={selectedPersonId}
-                      onChange={(e) => setSelectedPersonId(e.target.value)}
+                      onChange={(e) => {
+                        const personId = e.target.value;
+                        setSelectedPersonId(personId);
+                        // Auto-populate email from selected person
+                        if (personId) {
+                          const selectedPerson = people.find(p => p.id === parseInt(personId));
+                          setEmail(selectedPerson ? selectedPerson.email : "");
+                        } else {
+                          setEmail("");
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     >
@@ -569,7 +579,10 @@ export default function RoomBookingPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com"
+                  placeholder="Select a person to auto-fill email"
+                  readOnly
+                  disabled={!selectedPersonId}
+                  className={!selectedPersonId ? "bg-gray-100 cursor-not-allowed" : "bg-gray-50"}
                   required
                 />
 
