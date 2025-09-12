@@ -8,10 +8,45 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { toZonedTime, format as formatTz } from "date-fns-tz";
+
+// Utility functions for time handling
+const PST_TIMEZONE = "America/Los_Angeles";
+
+// Generate available times for a room based on avail_start and avail_end
+const generateAvailableTimes = (availStart, availEnd) => {
+if (!availStart || !availEnd) return [];
+
+const startTime = parseISO(availStart);
+const endTime = parseISO(availEnd);
+
+// Convert to PST and extract only the time components (discard date)
+const startPST = toZonedTime(startTime, PST_TIMEZONE);
+const endPST = toZonedTime(endTime, PST_TIMEZONE);
+
+// Create times using only the hour/minute from the availability timestamps
+const startHour = startPST.getHours();
+const endHour = endPST.getHours();
+
+const times = [];
+for (let hour = startHour; hour < endHour; hour++) {
+const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+times.push(timeString);
+}
+
+return times;
+};
+
+// Format time for display (HH:MM AM/PM)
+const formatTimeForDisplay = (timeString) => {
+  const [hours, minutes] = timeString.split(":");
+  const date = new Date();
+  date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+  return format(date, "hh:mm aa");
+};
 
 // Check if supabase client is initialized
-console.log("Supbase client in RoomBookingPage.js", supabase);
 if (!supabase) {
   console.error("Supabase client is not initialized");
 } else {
@@ -245,12 +280,60 @@ const PopoverContent = ({ children, className = "" }) => {
 export default function RoomBookingPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState("");
-  const [selectedRoom, setSelectedRoom] = useState("room-a");
-  const [name, setName] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedPersonId, setSelectedPersonId] = useState("");
   const [email, setEmail] = useState("");
   const [bookingMessage, setBookingMessage] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookings, setBookings] = useState({}); // { 'yyyy-MM-dd:room-id': ['09:00 AM', ...] }
+
+  // Data from database
+  const [people, setPeople] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load people and rooms from Supabase on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      if (!supabase) return;
+
+      try {
+        // Fetch people
+        const { data: peopleData, error: peopleError } = await supabase
+          .from("person")
+          .select("*")
+          .order("name");
+
+        // Fetch rooms with availability
+        const { data: roomsData, error: roomsError } = await supabase
+          .from("rooms")
+          .select("id, name, capacity, avail_start, avail_end")
+          .order("name");
+
+        if (peopleError) {
+          console.error("Error fetching people:", peopleError);
+        } else {
+          setPeople(peopleData || []);
+        }
+
+        if (roomsError) {
+          console.error("Error fetching rooms:", roomsError);
+        } else {
+          setRooms(roomsData || []);
+          // Set first room as selected by default
+          if (roomsData && roomsData.length > 0) {
+            setSelectedRoom(roomsData[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Load bookings for selected date+room from Supabase
   useEffect(() => {
@@ -272,21 +355,9 @@ export default function RoomBookingPage() {
     load();
   }, [selectedDate, selectedRoom]);
 
-  const availableTimes = [
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "01:00 PM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
-    "05:00 PM",
-  ];
-
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedDate || !selectedTime || !name || !email) {
+    if (!selectedDate || !selectedTime || !selectedPersonId || !email) {
       setBookingMessage("Please fill in all fields.");
       return;
     }
@@ -306,15 +377,13 @@ export default function RoomBookingPage() {
         room_id: selectedRoom,
         booking_date: dateKey,
         booking_time: selectedTime,
-        name,
-        email,
+        person_id: selectedPersonId,
       });
       const { data, error } = await supabase.from("bookings").insert({
         room_id: selectedRoom,
         booking_date: dateKey,
         booking_time: selectedTime,
-        name,
-        email,
+        person_id: selectedPersonId,
       });
       console.log("Booking saved to Supabase", { data, error });
       if (error) {
@@ -342,13 +411,19 @@ export default function RoomBookingPage() {
       return next;
     });
 
+    // Find selected person's name for confirmation message
+    const selectedPerson = people.find(
+      (p) => p.id === parseInt(selectedPersonId)
+    );
+    const personName = selectedPerson ? selectedPerson.name : "User";
+
     setBookingMessage(
-      `Booking for ${name} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`
+      `Booking for ${personName} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`
     );
 
     // Optionally reset form fields after successful submission
     setTimeout(() => {
-      setName("");
+      setSelectedPersonId("");
       setEmail("");
       setSelectedTime("");
       setBookingMessage("");
@@ -410,23 +485,26 @@ export default function RoomBookingPage() {
 
               <div className="mb-6">
                 <Label className="mb-3 block">Room</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-                  {[
-                    { id: "room-a", label: "Room A" },
-                    { id: "room-b", label: "Room B" },
-                    { id: "room-c", label: "Room C" },
-                    { id: "room-d", label: "Room D" },
-                  ].map((room) => (
-                    <Button
-                      key={room.id}
-                      variant={selectedRoom === room.id ? "default" : "outline"}
-                      onClick={() => setSelectedRoom(room.id)}
-                      className="w-full"
-                    >
-                      {room.label}
-                    </Button>
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="text-center py-4 text-gray-500">
+                    Loading rooms...
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {rooms.map((room) => (
+                      <Button
+                        key={room.id}
+                        variant={
+                          selectedRoom === room.id ? "default" : "outline"
+                        }
+                        onClick={() => setSelectedRoom(room.id)}
+                        className="flex-shrink-0 whitespace-nowrap px-6"
+                      >
+                        {room.name}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="mb-6">
@@ -435,6 +513,17 @@ export default function RoomBookingPage() {
                   Available Times
                 </Label>
                 {(() => {
+                  // Get available times for selected room
+                  const selectedRoomData = rooms.find(
+                    (room) => room.id === selectedRoom
+                  );
+                  const availableTimes = selectedRoomData
+                    ? generateAvailableTimes(
+                        selectedRoomData.avail_start,
+                        selectedRoomData.avail_end
+                      )
+                    : [];
+
                   const dateKey = selectedDate
                     ? format(selectedDate, "yyyy-MM-dd")
                     : null;
@@ -462,20 +551,16 @@ export default function RoomBookingPage() {
                               onClick={() => !isBooked && setSelectedTime(time)}
                               disabled={isBooked}
                               className={`w-full ${
-                                isBooked ? "opacity-50 cursor-not-allowed" : ""
+                                isBooked
+                                  ? "!bg-gray-200 !text-gray-500 !border-gray-300 !cursor-not-allowed !opacity-50 hover:!bg-gray-200 hover:!text-gray-500 hover:!border-gray-300"
+                                  : ""
                               }`}
                             >
-                              {time}
-                              {isBooked ? " (Booked)" : ""}
+                              {formatTimeForDisplay(time)}
                             </Button>
                           );
                         })}
                       </div>
-                      {bookedTimesForDate.length > 0 && (
-                        <p className="mt-2 text-sm text-gray-500">
-                          Booked for this date: {bookedTimesForDate.join(", ")}
-                        </p>
-                      )}
                     </>
                   );
                 })()}
@@ -490,21 +575,54 @@ export default function RoomBookingPage() {
               </h2>
 
               <form onSubmit={handleBookingSubmit} className="space-y-6">
-                <Input
-                  label="Name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your Name"
-                  required
-                />
+                <div>
+                  <Label className="mb-2">Person</Label>
+                  {loading ? (
+                    <div className="text-sm text-gray-500">
+                      Loading people...
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedPersonId}
+                      onChange={(e) => {
+                        const personId = e.target.value;
+                        setSelectedPersonId(personId);
+                        // Auto-populate email from selected person
+                        if (personId) {
+                          const selectedPerson = people.find(
+                            (p) => p.id === parseInt(personId)
+                          );
+                          setEmail(selectedPerson ? selectedPerson.email : "");
+                        } else {
+                          setEmail("");
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Select a person</option>
+                      {people.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
 
                 <Input
                   label="Email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com"
+                  placeholder="Select a person to auto-fill email"
+                  readOnly
+                  disabled={!selectedPersonId}
+                  className={
+                    !selectedPersonId
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : "bg-gray-50"
+                  }
                   required
                 />
 
