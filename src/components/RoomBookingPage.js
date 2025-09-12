@@ -411,6 +411,25 @@ export default function RoomBookingPage() {
       return next;
     });
 
+    // Send email confirmation (await so errors are visible in logs)
+    try {
+      const response = await fetch('/api/send-booking-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
+          html: `<p>Hi,</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`
+        })
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        console.error('Email send failed', json);
+      }
+    } catch (err) {
+      console.error('Email send request error', err);
+    }
+
     // Find selected person's name for confirmation message
     const selectedPerson = people.find(
       (p) => p.id === parseInt(selectedPersonId)
