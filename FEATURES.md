@@ -54,7 +54,7 @@ The project uses a manual migration strategy for production due to the direct da
 
 ## Integrate App with Supabase Schema
 
-**Status**: 🔴 TODO
+**Status**: 🟢 Done
 
 ### Requirements
 
@@ -66,13 +66,13 @@ The current application likely uses hardcoded data for people and rooms. This fe
 
 ### Acceptance Criteria
 
-[ ] The user input field for a person's name is replaced with a dropdown menu.
-[ ] The person dropdown is dynamically populated with the names of all people from the person table in the database.
-[ ] The UI dynamically displays the list of available rooms by fetching data from the rooms table.
-[ ] On form submission, a new row is inserted into the bookings table.
-[ ] The new bookings record correctly references the selected person_id and room_id.
-[ ] Existing logic for calculating room availability is not changed.
-[ ] Existing form validation is not changed.
+[x] The user input field for a person's name is replaced with a dropdown menu.
+[x] The person dropdown is dynamically populated with the names of all people from the person table in the database.
+[x] The UI dynamically displays the list of available rooms by fetching data from the rooms table.
+[x] On form submission, a new row is inserted into the bookings table.
+[x] The new bookings record correctly references the selected person_id and room_id.
+[x] Existing logic for calculating room availability is not changed.
+[x] Existing form validation is not changed.
 
 ### Implementation Notes
 
