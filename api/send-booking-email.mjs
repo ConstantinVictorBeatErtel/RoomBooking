@@ -9,16 +9,25 @@ export default async function handler(req, res) {
 
   try {
     const { to, subject, html, from } = req.body || {};
+    
+    console.log('Request body:', { to, subject, html, from });
+    console.log('Environment:', { 
+      hasApiKey: !!process.env.RESEND_API_KEY, 
+      resendFrom: process.env.RESEND_FROM 
+    });
 
     if (!process.env.RESEND_API_KEY) {
       return res.status(500).json({ error: 'Missing RESEND_API_KEY' });
     }
 
     if (!to || !subject || !html) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ 
+        error: `Missing required fields: to=${!!to}, subject=${!!subject}, html=${!!html}` 
+      });
     }
 
     const fromAddress = from || process.env.RESEND_FROM || 'onboarding@resend.dev';
+    console.log('From address:', fromAddress);
     
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
