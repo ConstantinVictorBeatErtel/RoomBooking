@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const fromAddress = from || 'onboarding@resend.dev';
+    const fromAddress = from || process.env.RESEND_FROM || 'onboarding@resend.dev';
 
     const { error } = await resend.emails.send({
       from: fromAddress,
