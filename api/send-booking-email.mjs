@@ -19,6 +19,16 @@ export default async function handler(req, res) {
     }
 
     const fromAddress = from || process.env.RESEND_FROM || 'onboarding@resend.dev';
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(fromAddress)) {
+      return res.status(400).json({ 
+        error: `Invalid from address format: ${fromAddress}. Must be email@domain.com or Name <email@domain.com>` 
+      });
+    }
+
+    console.log('Sending email:', { from: fromAddress, to, subject });
 
     const { error } = await resend.emails.send({
       from: fromAddress,
