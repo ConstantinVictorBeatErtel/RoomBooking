@@ -1,452 +1,174 @@
-import React, { useState, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
-import {
-  Calendar as CalendarIcon,
-  Clock,
-  User,
-  Mail,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { toZonedTime, format as formatTz } from "date-fns-tz";
-
-// Utility functions for time handling
-const PST_TIMEZONE = "America/Los_Angeles";
-
-// Generate available times for a room based on avail_start and avail_end
-const generateAvailableTimes = (availStart, availEnd) => {
-if (!availStart || !availEnd) return [];
-
-const startTime = parseISO(availStart);
-const endTime = parseISO(availEnd);
-
-// Convert to PST and extract only the time components (discard date)
-const startPST = toZonedTime(startTime, PST_TIMEZONE);
-const endPST = toZonedTime(endTime, PST_TIMEZONE);
-
-// Create times using only the hour/minute from the availability timestamps
-const startHour = startPST.getHours();
-const endHour = endPST.getHours();
-
-const times = [];
-for (let hour = startHour; hour < endHour; hour++) {
-const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
-times.push(timeString);
-}
-
-return times;
-};
-
-// Format time for display (HH:MM AM/PM)
-const formatTimeForDisplay = (timeString) => {
-  const [hours, minutes] = timeString.split(":");
-  const date = new Date();
-  date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  return format(date, "hh:mm aa");
-};
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import RoomSelector from './booking/RoomSelector';
+import DateTimeSelector from './booking/DateTimeSelector';
+import BookingForm from './booking/BookingForm';
+import { formatTimeForDisplay } from '../utils/timeUtils';
 
 // Check if supabase client is initialized
 if (!supabase) {
-  console.error("Supabase client is not initialized");
+  console.error('Supabase client is not initialized');
 } else {
-  console.log("Supabase client is initialized");
+  console.log('Supabase client is initialized');
 }
 
-// Simple Button component
-const Button = ({
-  children,
-  onClick,
-  variant = "default",
-  className = "",
-  type = "button",
-  ...props
-}) => {
-  const baseClasses =
-    "px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
-  const variants = {
-    default: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
-    outline:
-      "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500",
-    success: "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500",
-  };
-
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      className={`${baseClasses} ${variants[variant]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
-
-// Simple Input component
-const Input = ({ label, className = "", ...props }) => {
-  return (
-    <div>
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {label}
-        </label>
-      )}
-      <input
-        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${className}`}
-        {...props}
-      />
-    </div>
-  );
-};
-
-// Simple Label component
-const Label = ({ children, className = "", ...props }) => {
-  return (
-    <label
-      className={`block text-sm font-medium text-gray-700 ${className}`}
-      {...props}
-    >
-      {children}
-    </label>
-  );
-};
-
-// Simple Calendar component
-const Calendar = ({ selected, onSelect, mode = "single" }) => {
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(selected || today);
-
-  const getDaysInMonth = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDay = firstDay.getDay();
-
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDay; i++) {
-      days.push(null);
-    }
-
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day));
-    }
-
-    return days;
-  };
-
-  const days = getDaysInMonth(currentMonth);
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  const handleDayClick = (day) => {
-    if (day && day >= today) {
-      onSelect(day);
-    }
-  };
-
-  const goToPreviousMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
-    );
-  };
-
-  const goToNextMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
-    );
-  };
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={goToPreviousMonth}
-          className="p-2 hover:bg-gray-100 rounded-md"
-        >
-          ←
-        </button>
-        <h3 className="text-lg font-semibold">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </h3>
-        <button
-          onClick={goToNextMonth}
-          className="p-2 hover:bg-gray-100 rounded-md"
-        >
-          →
-        </button>
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div
-            key={day}
-            className="text-center text-sm font-medium text-gray-500 p-2"
-          >
-            {day}
-          </div>
-        ))}
-        {days.map((day, index) => (
-          <button
-            key={index}
-            onClick={() => handleDayClick(day)}
-            disabled={!day || day < today}
-            className={`
-              p-2 text-sm rounded-md transition-colors
-              ${!day ? "invisible" : ""}
-              ${
-                day && day < today
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }
-              ${
-                selected &&
-                day &&
-                day.toDateString() === selected.toDateString()
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-700"
-              }
-            `}
-          >
-            {day ? day.getDate() : ""}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Simple Popover components
-const Popover = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const childrenArray = React.Children.toArray(children);
-  const trigger = childrenArray[0];
-  const content = childrenArray[1];
-
-  const triggerChild =
-    trigger && trigger.props && trigger.props.children
-      ? trigger.props.children
-      : trigger;
-
-  const handleToggle = () => setIsOpen((prev) => !prev);
-
-  const clonedTrigger = React.isValidElement(triggerChild)
-    ? React.cloneElement(triggerChild, {
-        onClick: (...args) => {
-          if (typeof triggerChild.props?.onClick === "function") {
-            triggerChild.props.onClick(...args);
-          }
-          handleToggle();
-        },
-      })
-    : null;
-
-  return (
-    <div className="relative">
-      {clonedTrigger}
-      {isOpen && (
-        <div className="absolute z-10 mt-2 w-auto bg-white border border-gray-200 rounded-lg shadow-lg">
-          {content && content.props ? content.props.children : content}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const PopoverTrigger = ({ children, asChild = false }) => {
-  return children;
-};
-
-const PopoverContent = ({ children, className = "" }) => {
-  return <div className={`p-0 ${className}`}>{children}</div>;
-};
-
 export default function RoomBookingPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedPersonId, setSelectedPersonId] = useState("");
-  const [email, setEmail] = useState("");
-  const [bookingMessage, setBookingMessage] = useState("");
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [bookings, setBookings] = useState({}); // { 'yyyy-MM-dd:room-id': ['09:00 AM', ...] }
-
-  // Data from database
-  const [people, setPeople] = useState([]);
-  const [rooms, setRooms] = useState([]);
+  const [selectedPersonId, setSelectedPersonId] = useState('');
+  const [email, setEmail] = useState('');
+  const [bookingMessage, setBookingMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [rooms, setRooms] = useState([]);
+  const [people, setPeople] = useState([]);
+  const [bookings, setBookings] = useState({});
 
-  // Load people and rooms from Supabase on component mount
+  // Fetch rooms and people on component mount
   useEffect(() => {
-    const loadData = async () => {
-      if (!supabase) return;
-
+    const fetchData = async() => {
+      setLoading(true);
       try {
+        // Fetch rooms
+        const { data: roomsData, error: roomsError } = await supabase
+          .from('rooms')
+          .select('*');
+
+        if (roomsError) throw roomsError;
+
         // Fetch people
         const { data: peopleData, error: peopleError } = await supabase
-          .from("person")
-          .select("*")
-          .order("name");
+          .from('person')
+          .select('*');
 
-        // Fetch rooms with availability
-        const { data: roomsData, error: roomsError } = await supabase
-          .from("rooms")
-          .select("id, name, capacity, avail_start, avail_end")
-          .order("name");
+        if (peopleError) throw peopleError;
 
-        if (peopleError) {
-          console.error("Error fetching people:", peopleError);
-        } else {
-          setPeople(peopleData || []);
-        }
+        setRooms(roomsData || []);
+        setPeople(peopleData || []);
 
-        if (roomsError) {
-          console.error("Error fetching rooms:", roomsError);
-        } else {
-          setRooms(roomsData || []);
-          // Set first room as selected by default
-          if (roomsData && roomsData.length > 0) {
-            setSelectedRoom(roomsData[0].id);
-          }
+        // Set default room selection to first room
+        if (roomsData && roomsData.length > 0) {
+          setSelectedRoom(roomsData[0].id);
         }
       } catch (error) {
-        console.error("Error loading data:", error);
+        console.error('Error fetching data:', error);
+        setBookingMessage('Error loading data. Please refresh the page.');
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    fetchData();
   }, []);
 
-  // Load bookings for selected date+room from Supabase
+  // Fetch bookings when date or room changes
   useEffect(() => {
-    const load = async () => {
-      if (!supabase || !selectedDate || !selectedRoom) return;
-      const dateKey = format(selectedDate, "yyyy-MM-dd");
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("booking_time")
-        .eq("room_id", selectedRoom)
-        .eq("booking_date", dateKey);
-      if (!error && Array.isArray(data)) {
-        setBookings((prev) => ({
-          ...prev,
-          [`${dateKey}:${selectedRoom}`]: data.map((r) => r.booking_time),
-        }));
+    const fetchBookings = async() => {
+      if (!selectedDate || !selectedRoom) return;
+
+      try {
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        const { data: bookingsData, error } = await supabase
+          .from('bookings')
+          .select('booking_time')
+          .eq('booking_date', dateString)
+          .eq('room_id', selectedRoom);
+
+        if (error) throw error;
+
+        const bookedTimes = bookingsData.map(booking => booking.booking_time);
+        const key = `${dateString}:${selectedRoom}`;
+        setBookings(prev => ({ ...prev, [key]: bookedTimes }));
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
       }
     };
-    load();
+
+    fetchBookings();
   }, [selectedDate, selectedRoom]);
 
-  const handleBookingSubmit = async (e) => {
+  const handlePersonSelect = e => {
+    const personId = e.target.value;
+    setSelectedPersonId(personId);
+    // Auto-populate email from selected person
+    if (personId) {
+      const selectedPerson = people.find(p => p.id === parseInt(personId));
+      setEmail(selectedPerson ? selectedPerson.email : '');
+    } else {
+      setEmail('');
+    }
+  };
+
+  const handleBookingSubmit = async e => {
     e.preventDefault();
-    if (!selectedDate || !selectedTime || !selectedPersonId || !email) {
-      setBookingMessage("Please fill in all fields.");
+
+    if (!selectedDate || !selectedTime || !selectedRoom || !selectedPersonId) {
+      setBookingMessage('Please fill in all required fields.');
       return;
     }
 
-    const dateKey = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
-    const bookingsKey =
-      dateKey && selectedRoom ? `${dateKey}:${selectedRoom}` : null;
-    const bookedTimesForDate =
-      bookingsKey && bookings[bookingsKey] ? bookings[bookingsKey] : [];
-    if (bookedTimesForDate.includes(selectedTime)) {
-      setBookingMessage("That time is already booked for the selected date.");
-      return;
-    }
-    // Persist booking to Supabase
-    if (supabase) {
-      console.log("Saving booking to Supabase", {
-        room_id: selectedRoom,
-        booking_date: dateKey,
-        booking_time: selectedTime,
-        person_id: selectedPersonId,
-      });
-      const { data, error } = await supabase.from("bookings").insert({
-        room_id: selectedRoom,
-        booking_date: dateKey,
-        booking_time: selectedTime,
-        person_id: selectedPersonId,
-      });
-      console.log("Booking saved to Supabase", { data, error });
-      if (error) {
-        const code = (error.code || "").toString();
-        if (code === "23505") {
-          setBookingMessage(
-            "That time is already booked for the selected date."
-          );
-        } else {
-          setBookingMessage("Failed to save booking. Please try again.");
-        }
-        return;
-      }
-    }
-
-    // Optimistically update local state after successful insert
-    setBookings((prev) => {
-      const next = { ...prev };
-      const existing = bookingsKey ? next[bookingsKey] || [] : [];
-      if (bookingsKey) {
-        next[bookingsKey] = existing.includes(selectedTime)
-          ? existing
-          : [...existing, selectedTime];
-      }
-      return next;
-    });
-
-    // Send email confirmation (await so errors are visible in logs)
     try {
-      const response = await fetch('/api/send-booking-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: email,
-          subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
-          html: `<p>Hi,</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`
-        })
+      const bookingData = {
+        booking_date: format(selectedDate, 'yyyy-MM-dd'),
+        booking_time: selectedTime,
+        room_id: selectedRoom,
+        person_id: parseInt(selectedPersonId),
+        // email,
+      };
+
+      const { error } = await supabase.from('bookings').insert([bookingData]);
+
+      if (error) throw error;
+
+      // Update bookings state to reflect the new booking
+      const dateKey = format(selectedDate, 'yyyy-MM-dd');
+      const bookingsKey = `${dateKey}:${selectedRoom}`;
+      setBookings(prev => {
+        const current = prev[bookingsKey] || [];
+        const next = { ...prev, [bookingsKey]: [...current, selectedTime] };
+        return next;
       });
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        console.error('Email send failed', json);
+
+      // Find selected person's name for confirmation message
+      const selectedPerson = people.find(p => p.id === parseInt(selectedPersonId));
+      const personName = selectedPerson ? selectedPerson.name : 'User';
+
+      setBookingMessage(
+        `Booking for ${personName} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`,
+      );
+
+      // Send email confirmation (await so errors are visible in logs)
+      try {
+        const response = await fetch('/api/send-booking-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: email,
+            subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
+            html: `<p>Hi,</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`,
+          }),
+        });
+        const json = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          console.error('Email send failed', json);
+        }
+      } catch (err) {
+        console.error('Email send request error', err);
       }
-    } catch (err) {
-      console.error('Email send request error', err);
+
+      // Optionally reset form fields after successful submission
+      setTimeout(() => {
+        setSelectedPersonId('');
+        setEmail('');
+        setSelectedTime('');
+        setBookingMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      setBookingMessage('Error creating booking. Please try again.');
     }
-
-    // Find selected person's name for confirmation message
-    const selectedPerson = people.find(
-      (p) => p.id === parseInt(selectedPersonId)
-    );
-    const personName = selectedPerson ? selectedPerson.name : "User";
-
-    setBookingMessage(
-      `Booking for ${personName} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`
-    );
-
-    // Optionally reset form fields after successful submission
-    setTimeout(() => {
-      setSelectedPersonId("");
-      setEmail("");
-      setSelectedTime("");
-      setBookingMessage("");
-    }, 3000);
   };
 
   return (
@@ -468,208 +190,35 @@ export default function RoomBookingPage() {
                 Select Date & Time
               </h2>
 
-              <div className="mb-6">
-                <Label className="mb-3 block">Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={`w-full justify-start text-left font-normal ${
-                        !selectedDate ? "text-gray-500" : ""
-                      }`}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? (
-                        selectedDate.toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      selected={selectedDate}
-                      onSelect={(date) => {
-                        setSelectedDate(date);
-                        setShowCalendar(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <DateTimeSelector
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                selectedTime={selectedTime}
+                onTimeSelect={setSelectedTime}
+                rooms={rooms}
+                selectedRoom={selectedRoom}
+                bookings={bookings}
+              />
 
-              <div className="mb-6">
-                <Label className="mb-3 block">Room</Label>
-                {loading ? (
-                  <div className="text-center py-4 text-gray-500">
-                    Loading rooms...
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {rooms.map((room) => (
-                      <Button
-                        key={room.id}
-                        variant={
-                          selectedRoom === room.id ? "default" : "outline"
-                        }
-                        onClick={() => setSelectedRoom(room.id)}
-                        className="flex-shrink-0 whitespace-nowrap px-6"
-                      >
-                        {room.name}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-6">
-                <Label className="mb-3 block flex items-center">
-                  <Clock className="mr-2 h-4 w-4" />
-                  Available Times
-                </Label>
-                {(() => {
-                  // Get available times for selected room
-                  const selectedRoomData = rooms.find(
-                    (room) => room.id === selectedRoom
-                  );
-                  const availableTimes = selectedRoomData
-                    ? generateAvailableTimes(
-                        selectedRoomData.avail_start,
-                        selectedRoomData.avail_end
-                      )
-                    : [];
-
-                  const dateKey = selectedDate
-                    ? format(selectedDate, "yyyy-MM-dd")
-                    : null;
-                  const bookingsKey =
-                    dateKey && selectedRoom
-                      ? `${dateKey}:${selectedRoom}`
-                      : null;
-                  const bookedTimesForDate =
-                    bookingsKey && bookings[bookingsKey]
-                      ? bookings[bookingsKey]
-                      : [];
-                  return (
-                    <>
-                      <div className="grid grid-cols-3 gap-2">
-                        {availableTimes.map((time) => {
-                          const isBooked = bookedTimesForDate.includes(time);
-                          return (
-                            <Button
-                              key={time}
-                              variant={
-                                selectedTime === time && !isBooked
-                                  ? "default"
-                                  : "outline"
-                              }
-                              onClick={() => !isBooked && setSelectedTime(time)}
-                              disabled={isBooked}
-                              className={`w-full ${
-                                isBooked
-                                  ? "!bg-gray-200 !text-gray-500 !border-gray-300 !cursor-not-allowed !opacity-50 hover:!bg-gray-200 hover:!text-gray-500 hover:!border-gray-300"
-                                  : ""
-                              }`}
-                            >
-                              {formatTimeForDisplay(time)}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+              <RoomSelector
+                rooms={rooms}
+                selectedRoom={selectedRoom}
+                onRoomSelect={setSelectedRoom}
+                loading={loading}
+              />
             </div>
 
             {/* Booking Form Section */}
-            <div>
-              <h2 className="text-2xl font-semibold mb-6 text-gray-700 flex items-center">
-                <User className="mr-2 h-6 w-6" />
-                Your Details
-              </h2>
-
-              <form onSubmit={handleBookingSubmit} className="space-y-6">
-                <div>
-                  <Label className="mb-2">Person</Label>
-                  {loading ? (
-                    <div className="text-sm text-gray-500">
-                      Loading people...
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedPersonId}
-                      onChange={(e) => {
-                        const personId = e.target.value;
-                        setSelectedPersonId(personId);
-                        // Auto-populate email from selected person
-                        if (personId) {
-                          const selectedPerson = people.find(
-                            (p) => p.id === parseInt(personId)
-                          );
-                          setEmail(selectedPerson ? selectedPerson.email : "");
-                        } else {
-                          setEmail("");
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    >
-                      <option value="">Select a person</option>
-                      {people.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <Input
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Select a person to auto-fill email"
-                  readOnly
-                  disabled={!selectedPersonId}
-                  className={
-                    !selectedPersonId
-                      ? "bg-gray-100 cursor-not-allowed"
-                      : "bg-gray-50"
-                  }
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
-                >
-                  Confirm Booking
-                </Button>
-
-                {bookingMessage && (
-                  <div
-                    className={`mt-4 p-4 rounded-md flex items-center ${
-                      bookingMessage.includes("confirmed")
-                        ? "bg-green-50 text-green-800 border border-green-200"
-                        : "bg-red-50 text-red-800 border border-red-200"
-                    }`}
-                  >
-                    {bookingMessage.includes("confirmed") ? (
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                    ) : (
-                      <AlertCircle className="mr-2 h-5 w-5" />
-                    )}
-                    <span className="font-medium">{bookingMessage}</span>
-                  </div>
-                )}
-              </form>
-            </div>
+            <BookingForm
+              people={people}
+              selectedPersonId={selectedPersonId}
+              onPersonSelect={handlePersonSelect}
+              email={email}
+              onEmailChange={e => setEmail(e.target.value)}
+              onSubmit={handleBookingSubmit}
+              bookingMessage={bookingMessage}
+              loading={loading}
+            />
           </div>
         </div>
       </div>

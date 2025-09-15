@@ -45,6 +45,8 @@ A standalone React application for booking rooms with date and time selection.
 - `npm start` - Runs the app in development mode
 - `npm build` - Builds the app for production
 - `npm test` - Launches the test runner
+- `npm run lint` - Runs ESLint and auto-fixes issues
+- `npm run lint:check` - Runs ESLint without auto-fixing (used in CI)
 - `npm eject` - Ejects from Create React App (one-way operation)
 
 ## Usage
@@ -231,6 +233,38 @@ supabase gen types --lang=typescript --local > src/types/supabase.ts
 
 This command inspects your local database and writes the corresponding TypeScript types
 to a file in your project. It's recommended to run this after every successful migration.
+
+## Development Standards
+
+### Code Quality
+
+This project enforces code quality standards using ESLint with the following rules:
+
+- **Single quotes** for strings
+- **Semicolons** required
+- **2-space indentation**
+- **Trailing commas** in multiline objects/arrays
+- **No unused variables**
+- **Modern JavaScript practices** (const/let, arrow functions, template literals)
+- **React best practices** (hooks rules, JSX formatting)
+
+### Before Committing
+
+Always run the linter before committing:
+
+```bash
+npm run lint
+```
+
+### Continuous Integration
+
+Our GitHub Actions workflow automatically runs on all PRs and pushes to `main`/`develop`:
+
+- ✅ **ESLint checks** - Code must pass linting standards
+- ✅ **Build verification** - Project must build successfully  
+- ✅ **Test execution** - All tests must pass
+
+**The pipeline will fail if linting errors exist**, ensuring consistent code quality across all contributions.
 
 ## License
 
