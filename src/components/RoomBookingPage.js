@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import RoomSelector from './booking/RoomSelector';
 import DateTimeSelector from './booking/DateTimeSelector';
 import BookingForm from './booking/BookingForm';
+import { formatTimeForDisplay } from '../utils/timeUtils';
 
 // Check if supabase client is initialized
 if (!supabase) {
@@ -39,7 +40,7 @@ export default function RoomBookingPage() {
 
         // Fetch people
         const { data: peopleData, error: peopleError } = await supabase
-          .from('people')
+          .from('person')
           .select('*');
 
         if (peopleError) throw peopleError;
@@ -71,13 +72,13 @@ export default function RoomBookingPage() {
         const dateString = format(selectedDate, 'yyyy-MM-dd');
         const { data: bookingsData, error } = await supabase
           .from('bookings')
-          .select('time_slot')
-          .eq('date', dateString)
+          .select('booking_time')
+          .eq('booking_date', dateString)
           .eq('room_id', selectedRoom);
 
         if (error) throw error;
 
-        const bookedTimes = bookingsData.map(booking => booking.time_slot);
+        const bookedTimes = bookingsData.map(booking => booking.booking_time);
         const key = `${dateString}:${selectedRoom}`;
         setBookings(prev => ({ ...prev, [key]: bookedTimes }));
       } catch (error) {
@@ -110,11 +111,11 @@ export default function RoomBookingPage() {
 
     try {
       const bookingData = {
-        date: format(selectedDate, 'yyyy-MM-dd'),
-        time_slot: selectedTime,
+        booking_date: format(selectedDate, 'yyyy-MM-dd'),
+        booking_time: selectedTime,
         room_id: selectedRoom,
         person_id: parseInt(selectedPersonId),
-        email,
+        // email,
       };
 
       const { error } = await supabase.from('bookings').insert([bookingData]);
@@ -146,8 +147,8 @@ export default function RoomBookingPage() {
           body: JSON.stringify({
             to: email,
             subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
-            html: `<p>Hi,</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`
-          })
+            html: `<p>Hi,</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`,
+          }),
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -168,56 +169,41 @@ export default function RoomBookingPage() {
       console.error('Error creating booking:', error);
       setBookingMessage('Error creating booking. Please try again.');
     }
+  };
 
+  return (
+    <div className="container mx-auto p-4 max-w-4xl">
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
+          <h1 className="text-3xl font-bold text-center">Book a Room</h1>
+          <p className="text-center text-blue-100 mt-2">
+            Select your preferred date and time
+          </p>
+        </div>
 
-    
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Calendar and Time Selection Section */}
+            <div>
+              <h2 className="text-2xl font-semibold mb-6 text-gray-700 flex items-center">
+                <CalendarIcon className="mr-2 h-6 w-6" />
+                Select Date & Time
+              </h2>
 
-    return (
-      <div className="container mx-auto p-4 max-w-4xl">
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
-            <h1 className="text-3xl font-bold text-center">Book a Room</h1>
-            <p className="text-center text-blue-100 mt-2">
-              Select your preferred date and time
-            </p>
-          </div>
+              <DateTimeSelector
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                selectedTime={selectedTime}
+                onTimeSelect={setSelectedTime}
+                rooms={rooms}
+                selectedRoom={selectedRoom}
+                bookings={bookings}
+              />
 
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Calendar and Time Selection Section */}
-              <div>
-                <h2 className="text-2xl font-semibold mb-6 text-gray-700 flex items-center">
-                  <CalendarIcon className="mr-2 h-6 w-6" />
-                  Select Date & Time
-                </h2>
-
-                <DateTimeSelector
-                  selectedDate={selectedDate}
-                  onDateSelect={setSelectedDate}
-                  selectedTime={selectedTime}
-                  onTimeSelect={setSelectedTime}
-                  rooms={rooms}
-                  selectedRoom={selectedRoom}
-                  bookings={bookings}
-                />
-
-                <RoomSelector
-                  rooms={rooms}
-                  selectedRoom={selectedRoom}
-                  onRoomSelect={setSelectedRoom}
-                  loading={loading}
-                />
-              </div>
-
-              {/* Booking Form Section */}
-              <BookingForm
-                people={people}
-                selectedPersonId={selectedPersonId}
-                onPersonSelect={handlePersonSelect}
-                email={email}
-                onEmailChange={(e) => setEmail(e.target.value)}
-                onSubmit={handleBookingSubmit}
-                bookingMessage={bookingMessage}
+              <RoomSelector
+                rooms={rooms}
+                selectedRoom={selectedRoom}
+                onRoomSelect={setSelectedRoom}
                 loading={loading}
               />
             </div>
@@ -236,6 +222,6 @@ export default function RoomBookingPage() {
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
