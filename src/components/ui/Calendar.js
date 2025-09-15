@@ -1,11 +1,10 @@
-import React, { useState } from "react";
-import { format } from "date-fns";
+import { useState } from 'react';
 
-const Calendar = ({ selected, onSelect, mode = "single" }) => {
+const Calendar = ({ selected, onSelect, _mode = 'single' }) => {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(selected || today);
 
-  const getDaysInMonth = (date) => {
+  const getDaysInMonth = date => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -30,21 +29,21 @@ const Calendar = ({ selected, onSelect, mode = "single" }) => {
 
   const days = getDaysInMonth(currentMonth);
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
-  const handleDayClick = (day) => {
+  const handleDayClick = day => {
     if (day && day >= today) {
       onSelect(day);
     }
@@ -52,13 +51,13 @@ const Calendar = ({ selected, onSelect, mode = "single" }) => {
 
   const goToPreviousMonth = () => {
     setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
     );
   };
 
   const goToNextMonth = () => {
     setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
     );
   };
 
@@ -82,7 +81,7 @@ const Calendar = ({ selected, onSelect, mode = "single" }) => {
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div
             key={day}
             className="text-center text-sm font-medium text-gray-500 p-2"
@@ -97,22 +96,22 @@ const Calendar = ({ selected, onSelect, mode = "single" }) => {
             disabled={!day || day < today}
             className={`
               p-2 text-sm rounded-md transition-colors
-              ${!day ? "invisible" : ""}
+              ${!day ? 'invisible' : ''}
               ${
-                day && day < today
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "hover:bg-gray-100"
-              }
+          day && day < today
+            ? 'text-gray-300 cursor-not-allowed'
+            : 'hover:bg-gray-100'
+          }
               ${
-                selected &&
+          selected &&
                 day &&
                 day.toDateString() === selected.toDateString()
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-700"
-              }
+            ? 'bg-blue-600 text-white'
+            : 'text-gray-700'
+          }
             `}
           >
-            {day ? day.getDate() : ""}
+            {day ? day.getDate() : ''}
           </button>
         ))}
       </div>

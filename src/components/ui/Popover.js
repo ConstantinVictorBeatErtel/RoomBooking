@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
 const Popover = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,12 +11,12 @@ const Popover = ({ children }) => {
       ? trigger.props.children
       : trigger;
 
-  const handleToggle = () => setIsOpen((prev) => !prev);
+  const handleToggle = () => setIsOpen(prev => !prev);
 
   const clonedTrigger = React.isValidElement(triggerChild)
     ? React.cloneElement(triggerChild, {
-        onClick: handleToggle,
-      })
+      onClick: handleToggle,
+    })
     : triggerChild;
 
   return (
@@ -39,13 +39,13 @@ const Popover = ({ children }) => {
   );
 };
 
-const PopoverTrigger = ({ asChild, children, ...props }) => {
+const PopoverTrigger = ({ _asChild, children, ...props }) => {
   return React.isValidElement(children)
     ? React.cloneElement(children, props)
     : children;
 };
 
-const PopoverContent = ({ children, className = "" }) => {
+const PopoverContent = ({ children, className = '' }) => {
   return (
     <div
       className={`bg-white border border-gray-200 rounded-lg shadow-lg ${className}`}

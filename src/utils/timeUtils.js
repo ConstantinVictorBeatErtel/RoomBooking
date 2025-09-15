@@ -1,6 +1,6 @@
-import { format, parseISO } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
-import { PST_TIMEZONE } from "./constants";
+import { format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { PST_TIMEZONE } from './constants';
 
 // Generate available times for a room based on avail_start and avail_end
 export const generateAvailableTimes = (availStart, availEnd) => {
@@ -27,9 +27,9 @@ export const generateAvailableTimes = (availStart, availEnd) => {
 };
 
 // Format time for display (HH:MM AM/PM)
-export const formatTimeForDisplay = (timeString) => {
-  const [hours, minutes] = timeString.split(":");
+export const formatTimeForDisplay = timeString => {
+  const [hours, minutes] = timeString.split(':');
   const date = new Date();
   date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  return format(date, "hh:mm aa");
+  return format(date, 'hh:mm aa');
 };

@@ -1,6 +1,5 @@
-import React from "react";
 
-const Input = ({ label, className = "", ...props }) => {
+const Input = ({ label, className = '', ...props }) => {
   return (
     <div>
       {label && (

@@ -1,6 +1,5 @@
-import React from "react";
-import { User, CheckCircle, AlertCircle } from "lucide-react";
-import { Button, Input, Label } from "../ui";
+import { User, CheckCircle, AlertCircle } from 'lucide-react';
+import { Button, Input, Label } from '../ui';
 
 const BookingForm = ({
   people,
@@ -32,7 +31,7 @@ const BookingForm = ({
               required
             >
               <option value="">Select a person</option>
-              {people.map((person) => (
+              {people.map(person => (
                 <option key={person.id} value={person.id}>
                   {person.name}
                 </option>
@@ -50,7 +49,7 @@ const BookingForm = ({
           readOnly
           disabled={!selectedPersonId}
           className={
-            !selectedPersonId ? "bg-gray-100 cursor-not-allowed" : "bg-gray-50"
+            !selectedPersonId ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-50'
           }
           required
         />
@@ -65,12 +64,12 @@ const BookingForm = ({
         {bookingMessage && (
           <div
             className={`mt-4 p-4 rounded-md flex items-center ${
-              bookingMessage.includes("confirmed")
-                ? "bg-green-50 text-green-800 border border-green-200"
-                : "bg-red-50 text-red-800 border border-red-200"
+              bookingMessage.includes('confirmed')
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
             }`}
           >
-            {bookingMessage.includes("confirmed") ? (
+            {bookingMessage.includes('confirmed') ? (
               <CheckCircle className="mr-2 h-5 w-5" />
             ) : (
               <AlertCircle className="mr-2 h-5 w-5" />

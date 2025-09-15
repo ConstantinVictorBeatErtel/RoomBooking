@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import RoomSelector from "./booking/RoomSelector";
-import DateTimeSelector from "./booking/DateTimeSelector";
-import BookingForm from "./booking/BookingForm";
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import RoomSelector from './booking/RoomSelector';
+import DateTimeSelector from './booking/DateTimeSelector';
+import BookingForm from './booking/BookingForm';
 
 // Check if supabase client is initialized
 if (!supabase) {
-  console.error("Supabase client is not initialized");
+  console.error('Supabase client is not initialized');
 } else {
-  console.log("Supabase client is initialized");
+  console.log('Supabase client is initialized');
 }
 
 export default function RoomBookingPage() {
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedTime, setSelectedTime] = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedPersonId, setSelectedPersonId] = useState("");
-  const [email, setEmail] = useState("");
-  const [bookingMessage, setBookingMessage] = useState("");
+  const [selectedPersonId, setSelectedPersonId] = useState('');
+  const [email, setEmail] = useState('');
+  const [bookingMessage, setBookingMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState([]);
   const [people, setPeople] = useState([]);
@@ -27,20 +27,20 @@ export default function RoomBookingPage() {
 
   // Fetch rooms and people on component mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async() => {
       setLoading(true);
       try {
         // Fetch rooms
         const { data: roomsData, error: roomsError } = await supabase
-          .from("rooms")
-          .select("*");
+          .from('rooms')
+          .select('*');
 
         if (roomsError) throw roomsError;
 
         // Fetch people
         const { data: peopleData, error: peopleError } = await supabase
-          .from("people")
-          .select("*");
+          .from('people')
+          .select('*');
 
         if (peopleError) throw peopleError;
 
@@ -52,8 +52,8 @@ export default function RoomBookingPage() {
           setSelectedRoom(roomsData[0].id);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
-        setBookingMessage("Error loading data. Please refresh the page.");
+        console.error('Error fetching data:', error);
+        setBookingMessage('Error loading data. Please refresh the page.');
       } finally {
         setLoading(false);
       }
@@ -64,78 +64,78 @@ export default function RoomBookingPage() {
 
   // Fetch bookings when date or room changes
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchBookings = async() => {
       if (!selectedDate || !selectedRoom) return;
 
       try {
-        const dateString = format(selectedDate, "yyyy-MM-dd");
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
         const { data: bookingsData, error } = await supabase
-          .from("bookings")
-          .select("time_slot")
-          .eq("date", dateString)
-          .eq("room_id", selectedRoom);
+          .from('bookings')
+          .select('time_slot')
+          .eq('date', dateString)
+          .eq('room_id', selectedRoom);
 
         if (error) throw error;
 
-        const bookedTimes = bookingsData.map((booking) => booking.time_slot);
+        const bookedTimes = bookingsData.map(booking => booking.time_slot);
         const key = `${dateString}:${selectedRoom}`;
-        setBookings((prev) => ({ ...prev, [key]: bookedTimes }));
+        setBookings(prev => ({ ...prev, [key]: bookedTimes }));
       } catch (error) {
-        console.error("Error fetching bookings:", error);
+        console.error('Error fetching bookings:', error);
       }
     };
 
     fetchBookings();
   }, [selectedDate, selectedRoom]);
 
-  const handlePersonSelect = (e) => {
+  const handlePersonSelect = e => {
     const personId = e.target.value;
     setSelectedPersonId(personId);
     // Auto-populate email from selected person
     if (personId) {
-      const selectedPerson = people.find((p) => p.id === parseInt(personId));
-      setEmail(selectedPerson ? selectedPerson.email : "");
+      const selectedPerson = people.find(p => p.id === parseInt(personId));
+      setEmail(selectedPerson ? selectedPerson.email : '');
     } else {
-      setEmail("");
+      setEmail('');
     }
   };
 
-  const handleBookingSubmit = async (e) => {
+  const handleBookingSubmit = async e => {
     e.preventDefault();
 
     if (!selectedDate || !selectedTime || !selectedRoom || !selectedPersonId) {
-      setBookingMessage("Please fill in all required fields.");
+      setBookingMessage('Please fill in all required fields.');
       return;
     }
 
     try {
       const bookingData = {
-        date: format(selectedDate, "yyyy-MM-dd"),
+        date: format(selectedDate, 'yyyy-MM-dd'),
         time_slot: selectedTime,
         room_id: selectedRoom,
         person_id: parseInt(selectedPersonId),
-        email: email,
+        email,
       };
 
-      const { error } = await supabase.from("bookings").insert([bookingData]);
+      const { error } = await supabase.from('bookings').insert([bookingData]);
 
       if (error) throw error;
 
       // Update bookings state to reflect the new booking
-      const dateKey = format(selectedDate, "yyyy-MM-dd");
+      const dateKey = format(selectedDate, 'yyyy-MM-dd');
       const bookingsKey = `${dateKey}:${selectedRoom}`;
-      setBookings((prev) => {
+      setBookings(prev => {
         const current = prev[bookingsKey] || [];
         const next = { ...prev, [bookingsKey]: [...current, selectedTime] };
         return next;
       });
 
       // Find selected person's name for confirmation message
-      const selectedPerson = people.find((p) => p.id === parseInt(selectedPersonId));
-      const personName = selectedPerson ? selectedPerson.name : "User";
+      const selectedPerson = people.find(p => p.id === parseInt(selectedPersonId));
+      const personName = selectedPerson ? selectedPerson.name : 'User';
 
       setBookingMessage(
-        `Booking for ${personName} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`
+        `Booking for ${personName} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`,
       );
 
       // Send email confirmation (await so errors are visible in logs)
@@ -159,14 +159,14 @@ export default function RoomBookingPage() {
 
       // Optionally reset form fields after successful submission
       setTimeout(() => {
-        setSelectedPersonId("");
-        setEmail("");
-        setSelectedTime("");
-        setBookingMessage("");
+        setSelectedPersonId('');
+        setEmail('');
+        setSelectedTime('');
+        setBookingMessage('');
       }, 3000);
     } catch (error) {
-      console.error("Error creating booking:", error);
-      setBookingMessage("Error creating booking. Please try again.");
+      console.error('Error creating booking:', error);
+      setBookingMessage('Error creating booking. Please try again.');
     }
 
 
@@ -221,6 +221,18 @@ export default function RoomBookingPage() {
                 loading={loading}
               />
             </div>
+
+            {/* Booking Form Section */}
+            <BookingForm
+              people={people}
+              selectedPersonId={selectedPersonId}
+              onPersonSelect={handlePersonSelect}
+              email={email}
+              onEmailChange={e => setEmail(e.target.value)}
+              onSubmit={handleBookingSubmit}
+              bookingMessage={bookingMessage}
+              loading={loading}
+            />
           </div>
         </div>
       </div>

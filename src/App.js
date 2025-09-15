@@ -1,4 +1,3 @@
-import React from 'react';
 import RoomBookingPage from './components/RoomBookingPage';
 
 function App() {
