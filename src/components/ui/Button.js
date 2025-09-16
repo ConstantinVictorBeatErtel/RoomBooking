@@ -2,18 +2,25 @@
 const Button = ({
   children,
   onClick,
-  variant = 'default',
+  variant = 'primary',
   className = '',
   type = 'button',
   ...props
 }) => {
   const baseClasses =
-    'px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+    'px-4 py-3 rounded-lg font-semibold shadow-sm transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2';
+  
   const variants = {
-    default: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    // main call-to-action button
+    primary: 'bg-brand-blue text-white hover:opacity-90 focus:ring-brand-blue',
+
+    // secondary, gold button for alternative actions
+    secondary:
+      'bg-brand-gold text-brand-blue hover:opacity-90 focus:ring-brand-gold',
+
+    // outline button for less prominent actions
     outline:
-      'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+      'border-2 border-brand-blue bg-transparent text-brand-blue hover:bg-brand-blue hover:text-white focus:ring-brand-blue',
   };
 
   return (
