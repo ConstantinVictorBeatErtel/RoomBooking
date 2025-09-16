@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clsx } from 'clsx';
 
 const Calendar = ({ selected, onSelect, _mode = 'single' }) => {
   const today = new Date();
@@ -62,58 +63,65 @@ const Calendar = ({ selected, onSelect, _mode = 'single' }) => {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
+    <div className="w-80 bg-white border border-neutral-light rounded-lg p-4 shadow-md">
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={goToPreviousMonth}
-          className="p-2 hover:bg-gray-100 rounded-md"
+          className="p-2 hover:bg-neutral-lightest rounded-full focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
         >
-          ←
+          {'<'}
         </button>
-        <h3 className="text-lg font-semibold">
+        <h3 className="text-lg font-semibold text-neutral-dark">
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </h3>
         <button
           onClick={goToNextMonth}
-          className="p-2 hover:bg-gray-100 rounded-md"
+          className="p-2 hover:bg-neutral-lightest rounded-full focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
         >
-          →
+          {'>'}
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {/* Day headers using our medium neutral color for secondary text */}
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
           <div
             key={day}
-            className="text-center text-sm font-medium text-gray-500 p-2"
+            className="text-sm font-medium text-neutral-medium p-2"
           >
             {day}
           </div>
         ))}
-        {days.map((day, index) => (
-          <button
-            key={index}
-            onClick={() => handleDayClick(day)}
-            disabled={!day || day < today}
-            className={`
-              p-2 text-sm rounded-md transition-colors
-              ${!day ? 'invisible' : ''}
-              ${
-          day && day < today
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'hover:bg-gray-100'
-          }
-              ${
-          selected &&
-                day &&
-                day.toDateString() === selected.toDateString()
-            ? 'bg-blue-600 text-white'
-            : 'text-gray-700'
-          }
-            `}
-          >
-            {day ? day.getDate() : ''}
-          </button>
-        ))}
+
+        {/* Calendar days */}
+        {days.map((day, index) => {
+          // Is the day selected?
+          const isSelected = selected && day && day.toDateString() === selected.toDateString();
+          return (
+            <button
+              key={index}
+              onClick={() => handleDayClick(day)}
+              disabled={!day || day < today}
+              className={clsx(
+                // Base styles for all buttons
+                'h-10 w-10 flex items-center justify-center transition-colors',
+                'focus:outline-none focus:ring-2 focus:ring-brand-blue/50',
+                {
+                  invisible: !day,
+                  // Apply hover styles ONLY if the day is NOT selected.
+                  'text-neutral-dark hover:bg-neutral-lightest hover:text-neutral-dark rounded-lg':
+            !isSelected && day && day >= today,
+                  // Apply brand-color only if the day is selected
+                  'bg-brand-blue text-white font-bold rounded-lg': isSelected,
+                  // Apply disabled styles only if the day is in the past
+                  'text-neutral-medium cursor-not-allowed rounded-lg': day && day < today,
+                },
+              )}
+            >
+              {day ? day.getDate() : ''}
+            </button>
+          );
+        })
+        }
       </div>
     </div>
   );
