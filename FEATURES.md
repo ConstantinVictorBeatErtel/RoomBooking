@@ -169,3 +169,32 @@ Send a confirmation email to the email provided
 ### Implementation Notes
 
 - Download external package for email writing if needed
+
+## Admin View
+
+**Status:** 🔴 NOT READY
+
+### Requirements
+
+Create a visual view based on the schema on the state of all current registrations
+
+### Description
+
+- The student assistant for the space needs a view to confirm the booked schedules
+  of each room in the space
+- This view could also be visually helpful for others identifying when they could
+  book a room
+- The view must list:
+    - Each room
+    - Their total availability (scheduled, not scheduled & available, not available)
+    - For scheduled, some way to discern who has booked it
+
+
+### Acceptance Criteria
+
+- [ ] A separate view called "Schedule" is created
+- [ ] Schedule view shows you the availabiltiy of all four rooms visually
+
+### Implementation Notes
+
+- Download external package for email writing if needed
