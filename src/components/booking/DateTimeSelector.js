@@ -1,7 +1,17 @@
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { Button, Label, Calendar, Popover, PopoverTrigger, PopoverContent } from '../ui';
-import { generateAvailableTimes, formatTimeForDisplay } from '../../utils/timeUtils';
+import {
+  Button,
+  Calendar,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '../ui';
+import {
+  generateAvailableTimes,
+  formatTimeForDisplay,
+} from '../../utils/timeUtils';
+import clsx from 'clsx';
 
 const DateTimeSelector = ({
   selectedDate,
@@ -12,7 +22,6 @@ const DateTimeSelector = ({
   selectedRoom,
   bookings,
 }) => {
-  // Get available times for selected room
   const selectedRoomData = rooms.find(room => room.id === selectedRoom);
   const availableTimes = selectedRoomData
     ? generateAvailableTimes(
@@ -20,7 +29,6 @@ const DateTimeSelector = ({
       selectedRoomData.avail_end,
     )
     : [];
-
   const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
   const bookingsKey =
     dateKey && selectedRoom ? `${dateKey}:${selectedRoom}` : null;
@@ -30,14 +38,19 @@ const DateTimeSelector = ({
   return (
     <>
       <div className="mb-6">
-        <Label className="mb-3 block">Date</Label>
+        {/* Themed Date Label */}
+        <label className="block text-base font-semibold text-neutral-dark mb-3">
+          Date
+        </label>
         <Popover>
           <PopoverTrigger asChild>
+            {/* Themed Date Picker Button */}
             <Button
               variant="outline"
-              className={`w-full justify-start text-left font-normal ${
-                !selectedDate ? 'text-gray-500' : ''
-              }`}
+              className={clsx(
+                'w-full justify-start text-left font-normal',
+                !selectedDate && 'text-neutral-medium',
+              )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {selectedDate ? (
@@ -58,27 +71,39 @@ const DateTimeSelector = ({
       </div>
 
       <div className="mb-6">
-        <Label className="mb-3 block flex items-center">
-          <Clock className="mr-2 h-4 w-4" />
+        {/* Themed "Available Times" Label */}
+        <label className="block text-base font-semibold text-neutral-dark mb-3 flex items-center">
+          <Clock className="mr-2 h-5 w-5" />
           Available Times
-        </Label>
+        </label>
         <div className="grid grid-cols-3 gap-2">
           {availableTimes.map(time => {
             const isBooked = bookedTimesForDate.includes(time);
+            const isSelected = selectedTime === time && !isBooked;
+
             return (
-              <Button
+              // Use <button> and clsx for precise styling
+              <button
                 key={time}
-                variant={selectedTime === time && !isBooked ? 'default' : 'outline'}
-                onClick={() => !isBooked && onTimeSelect(time)}
+                onClick={() => onTimeSelect(time)}
                 disabled={isBooked}
-                className={`w-full ${
-                  isBooked
-                    ? '!bg-gray-200 !text-gray-500 !border-gray-300 !cursor-not-allowed !opacity-50 hover:!bg-gray-200 hover:!text-gray-500 hover:!border-gray-300'
-                    : ''
-                }`}
+                className={clsx(
+                  // Base styles
+                  'w-full rounded-lg border p-2 text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue',
+                  {
+                    // Disabled (Booked) State
+                    'bg-neutral-lightest text-neutral-medium border-transparent cursor-not-allowed':
+                      isBooked,
+                    // Selected State
+                    'bg-brand-blue border-brand-blue text-white': isSelected,
+                    // Default/Unselected State
+                    'bg-white border-neutral-light text-neutral-dark hover:bg-neutral-lightest':
+                      !isSelected && !isBooked,
+                  },
+                )}
               >
                 {formatTimeForDisplay(time)}
-              </Button>
+              </button>
             );
           })}
         </div>
