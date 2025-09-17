@@ -29,8 +29,9 @@ const RoomSelector = ({ rooms, selectedRoom, onRoomSelect, loading }) => {
                 <div key={room.id} className="relative">
                   {/* For flowbite-react, we wrap the tooltip around the button */}
                   <Tooltip
+                    placement="right"
                     content={
-                      <>
+                      <div className="w-64">
                         {room.description && (
                           <div className="text-neutral-lightest mb-2">
                             {room.description}
@@ -41,7 +42,7 @@ const RoomSelector = ({ rooms, selectedRoom, onRoomSelect, loading }) => {
                             Capacity: {room.capacity}
                           </div>
                         )}
-                      </>
+                      </div>
                     }
                   >
                     {/* Don't use Button.js here, so we can be more controlling about styles */}
