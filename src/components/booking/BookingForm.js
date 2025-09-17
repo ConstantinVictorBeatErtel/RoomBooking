@@ -1,5 +1,6 @@
 import { User, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button, Input } from '../ui';
+import clsx from 'clsx';
 
 const BookingForm = ({
   name,
@@ -11,8 +12,8 @@ const BookingForm = ({
 }) => {
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-6 text-gray-700 flex items-center">
-        <User className="mr-2 h-6 w-6" />
+      <h2 className="text-2xl font-semibold mb-6 text-neutral-dark flex items-center">
+        <User className="mr-3 h-6 w-6" />
         Your Details
       </h2>
 
@@ -35,20 +36,18 @@ const BookingForm = ({
           required
         />
 
-        <Button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
-        >
+        <Button type="submit" variant="primary" className="w-full py-3 text-lg">
           Confirm Booking
         </Button>
 
         {bookingMessage && (
           <div
-            className={`mt-4 p-4 rounded-md flex items-center ${
-              bookingMessage.includes('confirmed')
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
+            className={clsx('mt-4 p-4 rounded-md flex items-center border', {
+              'bg-neutral-lightest border-brand-blue text-brand-blue':
+                bookingMessage.includes('confirmed'),
+              'bg-red-50 border-red-300 text-red-700':
+                !bookingMessage.includes('confirmed'),
+            })}
           >
             {bookingMessage.includes('confirmed') ? (
               <CheckCircle className="mr-2 h-5 w-5" />
