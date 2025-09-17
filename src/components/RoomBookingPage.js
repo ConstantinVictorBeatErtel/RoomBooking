@@ -188,9 +188,9 @@ export default function RoomBookingPage() {
   return (
     <div className="w-full mx-auto p-4">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6">
+        <div className="bg-brand-blue text-white p-8 shadow-md">
           <h1 className="text-3xl font-bold text-center">Book a Room</h1>
-          <p className="text-center text-blue-100 mt-2">
+          <p className="text-center text-white mt-2">
             Select your preferred date and time
           </p>
         </div>

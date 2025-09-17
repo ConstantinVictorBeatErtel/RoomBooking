@@ -48,11 +48,11 @@ const DateTimeSelector = ({
             <Button
               variant="outline"
               className={clsx(
-                'w-full justify-start text-left font-normal',
-                !selectedDate && 'text-neutral-medium',
+                'block text-base font-semibold text-neutral-dark mb-3 flex items-center',
+                !selectedDate && 'text-neutral-dark',
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-5 w-5" />
               {selectedDate ? (
                 selectedDate.toLocaleDateString('en-US', {
                   year: 'numeric',
@@ -89,7 +89,10 @@ const DateTimeSelector = ({
                 disabled={isBooked}
                 className={clsx(
                   // Base styles
-                  'w-full rounded-lg border p-2 text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue',
+                  clsx(
+                    'w-full rounded-lg border p-3 text-sm font-medium transition-colors',
+                    'duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue',
+                  ),
                   {
                     // Disabled (Booked) State
                     'bg-neutral-lightest text-neutral-medium border-transparent cursor-not-allowed':

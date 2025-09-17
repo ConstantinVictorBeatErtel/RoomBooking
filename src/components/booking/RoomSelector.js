@@ -1,5 +1,6 @@
 // import { useState, useEffect, useRef } from 'react';
 import { useRef } from 'react';
+import { Building2 } from 'lucide-react';
 import { Tooltip } from 'flowbite-react';
 import clsx from 'clsx';
 
@@ -8,10 +9,11 @@ const RoomSelector = ({ rooms, selectedRoom, onRoomSelect, loading }) => {
   return (
     <div>
       {/* Label "Room" */}
-      <label className="block text-base font-semibold text-neutral-dark mb-3">
-        Room
-      </label>{' '}
-      {/* Loading text */} 
+      <label className="block text-base font-semibold text-neutral-dark mb-3 flex items-center">
+        <Building2 className="mr-2 h-5 w-5" />
+        Available Rooms
+      </label>
+      {/* Loading text */}
       {loading ? (
         <div className="text-center py-4 text-neutral-medium">
           Loading rooms...
@@ -50,7 +52,7 @@ const RoomSelector = ({ rooms, selectedRoom, onRoomSelect, loading }) => {
                       onClick={() => onRoomSelect(room.id)}
                       className={clsx(
                         'w-full h-full p-4 rounded-lg border-2 text-left flex items-center',
-                        'font-semibold transition-all duration-150 ease-in-out',
+                        'font-semibold transition-all duration-150 ease-in-out text-sm',
                         'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue',
                         {
                           'bg-brand-blue border-brand-blue text-white shadow-md':
