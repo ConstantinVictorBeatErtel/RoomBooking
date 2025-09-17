@@ -6,6 +6,7 @@ import RoomSelector from './booking/RoomSelector';
 import DateTimeSelector from './booking/DateTimeSelector';
 import BookingForm from './booking/BookingForm';
 import { formatTimeForDisplay } from '../utils/timeUtils';
+import { getBerkeleyEmailError } from '../utils/validation';
 
 // Check if supabase client is initialized
 if (!supabase) {
@@ -18,15 +19,14 @@ export default function RoomBookingPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedPersonId, setSelectedPersonId] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [bookingMessage, setBookingMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState([]);
-  const [people, setPeople] = useState([]);
   const [bookings, setBookings] = useState({});
 
-  // Fetch rooms and people on component mount
+  // Fetch rooms on component mount
   useEffect(() => {
     const fetchData = async() => {
       setLoading(true);
@@ -38,15 +38,7 @@ export default function RoomBookingPage() {
 
         if (roomsError) throw roomsError;
 
-        // Fetch people
-        const { data: peopleData, error: peopleError } = await supabase
-          .from('person')
-          .select('*');
-
-        if (peopleError) throw peopleError;
-
         setRooms(roomsData || []);
-        setPeople(peopleData || []);
 
         // Set default room selection to first room
         if (roomsData && roomsData.length > 0) {
@@ -89,38 +81,64 @@ export default function RoomBookingPage() {
     fetchBookings();
   }, [selectedDate, selectedRoom]);
 
-  const handlePersonSelect = e => {
-    const personId = e.target.value;
-    setSelectedPersonId(personId);
-    // Auto-populate email from selected person
-    if (personId) {
-      const selectedPerson = people.find(p => p.id === parseInt(personId));
-      setEmail(selectedPerson ? selectedPerson.email : '');
-    } else {
-      setEmail('');
-    }
-  };
-
   const handleBookingSubmit = async e => {
     e.preventDefault();
 
-    if (!selectedDate || !selectedTime || !selectedRoom || !selectedPersonId) {
+    if (!selectedDate || !selectedTime || !selectedRoom || !name.trim() || !email.trim()) {
       setBookingMessage('Please fill in all required fields.');
       return;
     }
 
+    // Validate Berkeley email
+    const emailError = getBerkeleyEmailError(email);
+    if (emailError) {
+      setBookingMessage(emailError);
+      return;
+    }
+
     try {
+      // First, check if person exists by email (since email is unique)
+      let personId;
+      const { data: existingPerson, error: searchError } = await supabase
+        .from('person')
+        .select('id, name')
+        .eq('email', email.trim())
+        .single();
+
+      if (searchError && searchError.code !== 'PGRST116') {
+        // PGRST116 is "no rows returned", other errors are actual problems
+        throw searchError;
+      }
+
+      if (existingPerson) {
+        // Person exists, use their ID
+        personId = existingPerson.id;
+        console.log(`Using existing person: ${existingPerson.name} (ID: ${personId})`);
+      } else {
+        // Person doesn't exist, create new person
+        const { data: newPerson, error: createError } = await supabase
+          .from('person')
+          .insert([{ name: name.trim(), email: email.trim() }])
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        
+        personId = newPerson.id;
+        console.log(`Created new person: ${name.trim()} (ID: ${personId})`);
+      }
+
+      // Now create the booking with the person_id
       const bookingData = {
         booking_date: format(selectedDate, 'yyyy-MM-dd'),
         booking_time: selectedTime,
         room_id: selectedRoom,
-        person_id: parseInt(selectedPersonId),
-        // email,
+        person_id: personId,
       };
 
-      const { error } = await supabase.from('bookings').insert([bookingData]);
+      const { error: bookingError } = await supabase.from('bookings').insert([bookingData]);
 
-      if (error) throw error;
+      if (bookingError) throw bookingError;
 
       // Update bookings state to reflect the new booking
       const dateKey = format(selectedDate, 'yyyy-MM-dd');
@@ -131,12 +149,8 @@ export default function RoomBookingPage() {
         return next;
       });
 
-      // Find selected person's name for confirmation message
-      const selectedPerson = people.find(p => p.id === parseInt(selectedPersonId));
-      const personName = selectedPerson ? selectedPerson.name : 'User';
-
       setBookingMessage(
-        `Booking for ${personName} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`,
+        `Booking for ${name.trim()} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`,
       );
 
       // Send email confirmation (await so errors are visible in logs)
@@ -145,9 +159,9 @@ export default function RoomBookingPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            to: email,
+            to: email.trim(),
             subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
-            html: `<p>Hi,</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`,
+            html: `<p>Hi ${name.trim()},</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`,
           }),
         });
         const json = await response.json().catch(() => ({}));
@@ -160,7 +174,7 @@ export default function RoomBookingPage() {
 
       // Optionally reset form fields after successful submission
       setTimeout(() => {
-        setSelectedPersonId('');
+        setName('');
         setEmail('');
         setSelectedTime('');
         setBookingMessage('');
@@ -210,14 +224,12 @@ export default function RoomBookingPage() {
 
             {/* Booking Form Section */}
             <BookingForm
-              people={people}
-              selectedPersonId={selectedPersonId}
-              onPersonSelect={handlePersonSelect}
+              name={name}
+              onNameChange={e => setName(e.target.value)}
               email={email}
               onEmailChange={e => setEmail(e.target.value)}
               onSubmit={handleBookingSubmit}
               bookingMessage={bookingMessage}
-              loading={loading}
             />
           </div>
         </div>

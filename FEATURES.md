@@ -170,6 +170,35 @@ Send a confirmation email to the email provided
 
 - Download external package for email writing if needed
 
+## Typable Name
+
+**Status:** 🟢 Done
+
+### Requirements
+
+Allow users to type their name and email, instead of setting from a prefixed dropdown
+
+### Description
+
+- Students should type their own name and email into a text box to book a room
+- Both fields are required
+- Email must be a Berkeley address (ending with @berkeley.edu)
+- On confirming booking, the name / email combination should be saved to the person table
+  if it doesn't already exist (email is unique and 1:1 with person.id)
+
+
+### Acceptance Criteria
+
+- [x] Name and email are type-able required fields on the booking form
+- [x] Email validation ensures only Berkeley addresses (@berkeley.edu) are accepted
+- [x] Name and email should be stored in the database upon submission
+- [x] If person exists, store booking data using existing person_id. if not, create new 
+      person and then new booking
+
+### Implementation Notes
+
+- Download external package for email writing if needed
+
 ## Admin View
 
 **Status:** 🔴 NOT READY

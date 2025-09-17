@@ -1,15 +1,13 @@
 import { User, CheckCircle, AlertCircle } from 'lucide-react';
-import { Button, Input, Label } from '../ui';
+import { Button, Input } from '../ui';
 
 const BookingForm = ({
-  people,
-  selectedPersonId,
-  onPersonSelect,
+  name,
+  onNameChange,
   email,
   onEmailChange,
   onSubmit,
   bookingMessage,
-  loading,
 }) => {
   return (
     <div>
@@ -19,38 +17,21 @@ const BookingForm = ({
       </h2>
 
       <form onSubmit={onSubmit} className="space-y-6">
-        <div>
-          <Label className="mb-2">Person</Label>
-          {loading ? (
-            <div className="text-sm text-gray-500">Loading people...</div>
-          ) : (
-            <select
-              value={selectedPersonId}
-              onChange={onPersonSelect}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="">Select a person</option>
-              {people.map(person => (
-                <option key={person.id} value={person.id}>
-                  {person.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+        <Input
+          label="Name"
+          type="text"
+          value={name}
+          onChange={onNameChange}
+          placeholder="Enter your full name"
+          required
+        />
 
         <Input
           label="Email"
           type="email"
           value={email}
           onChange={onEmailChange}
-          placeholder="Select a person to auto-fill email"
-          readOnly
-          disabled={!selectedPersonId}
-          className={
-            !selectedPersonId ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-50'
-          }
+          placeholder="Enter your Berkeley email (someone@berkeley.edu)"
           required
         />
 
