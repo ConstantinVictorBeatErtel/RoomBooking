@@ -17,7 +17,7 @@ const mockRooms = [
     avail_start: '2024-01-01T09:00:00Z',
     avail_end: '2024-01-01T17:00:00Z',
     description: 'Cozy meeting room with whiteboard and video conferencing.',
-    color: '#4285f4', // Google Blue
+    color: '#003262', // brand-blue
   },
   {
     id: 2,
@@ -26,7 +26,7 @@ const mockRooms = [
     avail_start: '2024-01-01T09:00:00Z',
     avail_end: '2024-01-01T17:00:00Z',
     description: 'Private corner space ideal for coaching sessions.',
-    color: '#34a853', // Google Green
+    color: '#FDB515', // brand-gold
   },
   {
     id: 3,
@@ -35,7 +35,7 @@ const mockRooms = [
     avail_start: '2024-01-01T09:00:00Z',
     avail_end: '2024-01-01T17:00:00Z',
     description: 'Executive conference room with large display and premium amenities.',
-    color: '#ea4335', // Google Red
+    color: '#64748b', // neutral-medium
   },
   {
     id: 4,
@@ -44,7 +44,7 @@ const mockRooms = [
     avail_start: '2024-01-01T09:00:00Z',
     avail_end: '2024-01-01T17:00:00Z',
     description: 'Open collaborative workspace near kitchen facilities.',
-    color: '#fbbc04', // Google Yellow
+    color: '#1e293b', // neutral-dark
   },
 ];
 

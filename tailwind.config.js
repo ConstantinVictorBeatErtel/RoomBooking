@@ -21,10 +21,15 @@ module.exports = {
       'neutral-medium': '#64748b', // Medium gray for subtitles, secondary text
       'neutral-dark': '#1e293b', // Dark gray for primary text
 
+      // Room Colors
+      'room-blue': '#4285f4',
+      'room-green': '#34a853',
+      'room-red': '#ea4335',
+      'room-yellow': '#fbbc04',
+
       // Transparent, for things like border color
       transparent: 'transparent',
     },
-    extend: {
-    },
+    extend: {},
   },
 };
