@@ -1,29 +1,53 @@
-import { format, parseISO } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
-import { PST_TIMEZONE } from './constants';
+import { format } from 'date-fns';
 
 // Generate available times for a room based on avail_start and avail_end
-export const generateAvailableTimes = (availStart, availEnd) => {
-  if (!availStart || !availEnd) return [];
-
-  const startTime = parseISO(availStart);
-  const endTime = parseISO(availEnd);
-
-  // Convert to PST and extract only the time components (discard date)
-  const startPST = toZonedTime(startTime, PST_TIMEZONE);
-  const endPST = toZonedTime(endTime, PST_TIMEZONE);
-
-  // Create times using only the hour/minute from the availability timestamps
-  const startHour = startPST.getHours();
-  const endHour = endPST.getHours();
+export const generateAvailableTimes = (availStart, availEnd, duration = 1, bookedTimes = []) => {
+  // Always show 9am to 5pm regardless of room availability
 
   const times = [];
-  for (let hour = startHour; hour < endHour; hour++) {
+  // Always show 9am to 5pm (9 to 17) for available times
+  const availableStartHour = 9;
+  const availableEndHour = 17;
+  
+  for (let hour = availableStartHour; hour <= availableEndHour - duration; hour++) {
     const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
-    times.push(timeString);
+    
+    // Check if this time slot is available for the given duration
+    if (isTimeSlotAvailable(timeString, duration, bookedTimes)) {
+      times.push(timeString);
+    }
   }
 
   return times;
+};
+
+// Check if a time slot is available for a given duration
+export const isTimeSlotAvailable = (startTime, duration, bookedTimes) => {
+  const startHour = parseInt(startTime.split(':')[0]);
+  const endHour = startHour + duration;
+  
+  // Check if any of the required hours are booked
+  for (let hour = startHour; hour < endHour; hour++) {
+    const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+    if (bookedTimes.includes(timeString)) {
+      return false;
+    }
+  }
+  
+  return true;
+};
+
+// Get all time slots that would be occupied by a booking
+export const getOccupiedTimeSlots = (startTime, duration) => {
+  const startHour = parseInt(startTime.split(':')[0]);
+  const occupiedSlots = [];
+  
+  for (let hour = startHour; hour < startHour + duration; hour++) {
+    const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+    occupiedSlots.push(timeString);
+  }
+  
+  return occupiedSlots;
 };
 
 // Format time for display (HH:MM AM/PM)

@@ -18,6 +18,7 @@ if (!supabase) {
 export default function RoomBookingPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedDuration, setSelectedDuration] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -64,15 +65,24 @@ export default function RoomBookingPage() {
         const dateString = format(selectedDate, 'yyyy-MM-dd');
         const { data: bookingsData, error } = await supabase
           .from('bookings')
-          .select('booking_time')
+          .select('booking_time, duration_hours')
           .eq('booking_date', dateString)
           .eq('room_id', selectedRoom);
 
         if (error) throw error;
 
-        const bookedTimes = bookingsData.map(booking => booking.booking_time);
+        // Get all occupied time slots (including duration)
+        const occupiedSlots = new Set();
+        bookingsData.forEach(booking => {
+          const startHour = parseInt(booking.booking_time.split(':')[0]);
+          for (let hour = startHour; hour < startHour + booking.duration_hours; hour++) {
+            const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+            occupiedSlots.add(timeString);
+          }
+        });
+
         const key = `${dateString}:${selectedRoom}`;
-        setBookings(prev => ({ ...prev, [key]: bookedTimes }));
+        setBookings(prev => ({ ...prev, [key]: Array.from(occupiedSlots) }));
       } catch (error) {
         console.error('Error fetching bookings:', error);
       }
@@ -114,6 +124,33 @@ export default function RoomBookingPage() {
         // Person exists, use their ID
         personId = existingPerson.id;
         console.log(`Using existing person: ${existingPerson.name} (ID: ${personId})`);
+        
+        // Check for back-to-back bookings by the same person
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        const { data: existingBookings, error: bookingCheckError } = await supabase
+          .from('bookings')
+          .select('booking_time, duration_hours')
+          .eq('person_id', personId)
+          .eq('room_id', selectedRoom)
+          .eq('booking_date', dateString);
+
+        if (bookingCheckError) throw bookingCheckError;
+
+        // Check if this would create a back-to-back booking
+        const selectedStartHour = parseInt(selectedTime.split(':')[0]);
+        const selectedEndHour = selectedStartHour + selectedDuration;
+        
+        for (const booking of existingBookings) {
+          const bookingStartHour = parseInt(booking.booking_time.split(':')[0]);
+          const bookingEndHour = bookingStartHour + booking.duration_hours;
+          
+          // Check for overlap or immediate adjacency
+          if ((selectedStartHour < bookingEndHour && selectedEndHour > bookingStartHour) ||
+              (selectedStartHour === bookingEndHour || selectedEndHour === bookingStartHour)) {
+            setBookingMessage('You already have a booking for this room at this time or an adjacent time. Please choose a different time slot.');
+            return;
+          }
+        }
       } else {
         // Person doesn't exist, create new person
         const { data: newPerson, error: createError } = await supabase
@@ -128,10 +165,11 @@ export default function RoomBookingPage() {
         console.log(`Created new person: ${name.trim()} (ID: ${personId})`);
       }
 
-      // Now create the booking with the person_id
+      // Now create the booking with the person_id and duration
       const bookingData = {
         booking_date: format(selectedDate, 'yyyy-MM-dd'),
         booking_time: selectedTime,
+        duration_hours: selectedDuration,
         room_id: selectedRoom,
         person_id: personId,
       };
@@ -145,12 +183,19 @@ export default function RoomBookingPage() {
       const bookingsKey = `${dateKey}:${selectedRoom}`;
       setBookings(prev => {
         const current = prev[bookingsKey] || [];
-        const next = { ...prev, [bookingsKey]: [...current, selectedTime] };
+        // Add all occupied time slots for this booking
+        const occupiedSlots = [];
+        const startHour = parseInt(selectedTime.split(':')[0]);
+        for (let hour = startHour; hour < startHour + selectedDuration; hour++) {
+          const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+          occupiedSlots.push(timeString);
+        }
+        const next = { ...prev, [bookingsKey]: [...current, ...occupiedSlots] };
         return next;
       });
 
       setBookingMessage(
-        `Booking for ${name.trim()} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`,
+        `Booking for ${name.trim()} on ${selectedDate.toLocaleDateString()} at ${selectedTime} for ${selectedDuration} hour${selectedDuration > 1 ? 's' : ''} confirmed!`,
       );
 
       // Send email confirmation (await so errors are visible in logs)
@@ -160,8 +205,8 @@ export default function RoomBookingPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: email.trim(),
-            subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
-            html: `<p>Hi ${name.trim()},</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`,
+            subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)} (${selectedDuration}h)`,
+            html: `<p>Hi ${name.trim()},</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong> for <strong>${selectedDuration} hour${selectedDuration > 1 ? 's' : ''}</strong>.</p>`,
           }),
         });
         const json = await response.json().catch(() => ({}));
@@ -177,6 +222,7 @@ export default function RoomBookingPage() {
         setName('');
         setEmail('');
         setSelectedTime('');
+        setSelectedDuration(1);
         setBookingMessage('');
       }, 3000);
     } catch (error) {
@@ -209,6 +255,8 @@ export default function RoomBookingPage() {
                 onDateSelect={setSelectedDate}
                 selectedTime={selectedTime}
                 onTimeSelect={setSelectedTime}
+                selectedDuration={selectedDuration}
+                onDurationChange={setSelectedDuration}
                 rooms={rooms}
                 selectedRoom={selectedRoom}
                 bookings={bookings}
