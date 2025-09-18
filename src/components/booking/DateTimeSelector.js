@@ -11,6 +11,7 @@ import {
   generateAvailableTimes,
   formatTimeForDisplay,
 } from '../../utils/timeUtils';
+import DurationSelector from './DurationSelector';
 import clsx from 'clsx';
 
 const DateTimeSelector = ({
@@ -18,22 +19,27 @@ const DateTimeSelector = ({
   onDateSelect,
   selectedTime,
   onTimeSelect,
+  selectedDuration,
+  onDurationChange,
   rooms,
   selectedRoom,
   bookings,
 }) => {
   const selectedRoomData = rooms.find(room => room.id === selectedRoom);
-  const availableTimes = selectedRoomData
-    ? generateAvailableTimes(
-      selectedRoomData.avail_start,
-      selectedRoomData.avail_end,
-    )
-    : [];
   const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
   const bookingsKey =
     dateKey && selectedRoom ? `${dateKey}:${selectedRoom}` : null;
   const bookedTimesForDate =
     bookingsKey && bookings[bookingsKey] ? bookings[bookingsKey] : [];
+  
+  const availableTimes = selectedRoomData
+    ? generateAvailableTimes(
+      selectedRoomData.avail_start,
+      selectedRoomData.avail_end,
+      selectedDuration,
+      bookedTimesForDate,
+    )
+    : [];
 
   return (
     <>
@@ -70,6 +76,11 @@ const DateTimeSelector = ({
         </Popover>
       </div>
 
+      <DurationSelector
+        selectedDuration={selectedDuration}
+        onDurationChange={onDurationChange}
+      />
+
       <div className="mb-6">
         {/* Themed "Available Times" Label */}
         <label className="block text-base font-semibold text-neutral-dark mb-3 flex items-center">
@@ -105,7 +116,12 @@ const DateTimeSelector = ({
                   },
                 )}
               >
-                {formatTimeForDisplay(time)}
+                <div className="text-center">
+                  <div>{formatTimeForDisplay(time)}</div>
+                  <div className="text-xs opacity-75">
+                    ({selectedDuration}h)
+                  </div>
+                </div>
               </button>
             );
           })}

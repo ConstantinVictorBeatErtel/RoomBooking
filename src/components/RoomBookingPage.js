@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfWeek, addDays } from 'date-fns';
 import RoomSelector from './booking/RoomSelector';
 import DateTimeSelector from './booking/DateTimeSelector';
 import BookingForm from './booking/BookingForm';
 import { formatTimeForDisplay } from '../utils/timeUtils';
 import { getBerkeleyEmailError } from '../utils/validation';
+import BookingCalendar from './booking/BookingCalendar';
 
 // Check if supabase client is initialized
 if (!supabase) {
@@ -18,6 +19,7 @@ if (!supabase) {
 export default function RoomBookingPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedDuration, setSelectedDuration] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,6 +27,8 @@ export default function RoomBookingPage() {
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState({});
+  const [bookingDetails, setBookingDetails] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(new Date());
 
   // Fetch rooms on component mount
   useEffect(() => {
@@ -61,18 +65,28 @@ export default function RoomBookingPage() {
       if (!selectedDate || !selectedRoom) return;
 
       try {
+        // Grab existing bookings, including duration
         const dateString = format(selectedDate, 'yyyy-MM-dd');
         const { data: bookingsData, error } = await supabase
           .from('bookings')
-          .select('booking_time')
+          .select('booking_time, duration_hours')
           .eq('booking_date', dateString)
           .eq('room_id', selectedRoom);
 
         if (error) throw error;
 
-        const bookedTimes = bookingsData.map(booking => booking.booking_time);
+        // Get all occupied time slots (including duration)
+        const occupiedSlots = new Set();
+        bookingsData.forEach(booking => {
+          const startHour = parseInt(booking.booking_time.split(':')[0]);
+          for (let hour = startHour; hour < startHour + booking.duration_hours; hour++) {
+            const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+            occupiedSlots.add(timeString);
+          }
+        });
+
         const key = `${dateString}:${selectedRoom}`;
-        setBookings(prev => ({ ...prev, [key]: bookedTimes }));
+        setBookings(prev => ({ ...prev, [key]: Array.from(occupiedSlots) }));
       } catch (error) {
         console.error('Error fetching bookings:', error);
       }
@@ -80,6 +94,54 @@ export default function RoomBookingPage() {
 
     fetchBookings();
   }, [selectedDate, selectedRoom]);
+
+  // Fetch booking details for calendar view
+  useEffect(() => {
+    const fetchBookingDetails = async() => {
+      try {
+        // Get current week range for calendar
+        const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday start
+        const weekEnd = addDays(weekStart, 4); // Friday end
+        
+        const startDateString = format(weekStart, 'yyyy-MM-dd');
+        const endDateString = format(weekEnd, 'yyyy-MM-dd');
+
+        const { data: bookingDetailsData, error } = await supabase
+          .from('bookings')
+          .select(`
+            id,
+            booking_date,
+            booking_time,
+            duration_hours,
+            room_id,
+            person_id,
+            person (name)
+          `)
+          .gte('booking_date', startDateString)
+          .lte('booking_date', endDateString)
+          .order('booking_date', { ascending: true })
+          .order('booking_time', { ascending: true });
+
+        if (error) throw error;
+
+        // Transform the data to match the expected format
+        const transformedBookings = bookingDetailsData.map(booking => ({
+          id: booking.id,
+          room_id: booking.room_id,
+          person_name: booking.person?.name || 'Unknown',
+          booking_date: booking.booking_date,
+          booking_time: booking.booking_time,
+          duration_hours: booking.duration_hours,
+        }));
+
+        setBookingDetails(transformedBookings);
+      } catch (error) {
+        console.error('Error fetching booking details:', error);
+      }
+    };
+
+    fetchBookingDetails();
+  }, [currentWeek]);
 
   const handleBookingSubmit = async e => {
     e.preventDefault();
@@ -114,6 +176,33 @@ export default function RoomBookingPage() {
         // Person exists, use their ID
         personId = existingPerson.id;
         console.log(`Using existing person: ${existingPerson.name} (ID: ${personId})`);
+        
+        // GUARD: Check for back-to-back bookings by the same person
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        const { data: existingBookings, error: bookingCheckError } = await supabase
+          .from('bookings')
+          .select('booking_time, duration_hours')
+          .eq('person_id', personId)
+          .eq('room_id', selectedRoom)
+          .eq('booking_date', dateString);
+
+        if (bookingCheckError) throw bookingCheckError;
+
+        // GUARD: Check if this would create a back-to-back booking
+        const selectedStartHour = parseInt(selectedTime.split(':')[0]);
+        const selectedEndHour = selectedStartHour + selectedDuration;
+        
+        for (const booking of existingBookings) {
+          const bookingStartHour = parseInt(booking.booking_time.split(':')[0]);
+          const bookingEndHour = bookingStartHour + booking.duration_hours;
+          
+          // GUARD: Check for overlap or immediate adjacency
+          if ((selectedStartHour < bookingEndHour && selectedEndHour > bookingStartHour) ||
+              (selectedStartHour === bookingEndHour || selectedEndHour === bookingStartHour)) {
+            setBookingMessage('You already have a booking for this room at this time or an adjacent time. Please choose a different time slot.');
+            return;
+          }
+        }
       } else {
         // Person doesn't exist, create new person
         const { data: newPerson, error: createError } = await supabase
@@ -128,10 +217,11 @@ export default function RoomBookingPage() {
         console.log(`Created new person: ${name.trim()} (ID: ${personId})`);
       }
 
-      // Now create the booking with the person_id
+      // Now create the booking with the person_id and duration
       const bookingData = {
         booking_date: format(selectedDate, 'yyyy-MM-dd'),
         booking_time: selectedTime,
+        duration_hours: selectedDuration,
         room_id: selectedRoom,
         person_id: personId,
       };
@@ -145,12 +235,32 @@ export default function RoomBookingPage() {
       const bookingsKey = `${dateKey}:${selectedRoom}`;
       setBookings(prev => {
         const current = prev[bookingsKey] || [];
-        const next = { ...prev, [bookingsKey]: [...current, selectedTime] };
+        // Add all occupied time slots for this booking
+        const occupiedSlots = [];
+        const startHour = parseInt(selectedTime.split(':')[0]);
+        for (let hour = startHour; hour < startHour + selectedDuration; hour++) {
+          const timeString = `${hour.toString().padStart(2, '0')}:00:00`;
+          occupiedSlots.push(timeString);
+        }
+        const next = { ...prev, [bookingsKey]: [...current, ...occupiedSlots] };
         return next;
       });
 
+      // Also update booking details for calendar
+      setBookingDetails(prev => [
+        ...prev,
+        {
+          id: Date.now(), // Temporary ID until we get the real one
+          room_id: selectedRoom,
+          person_name: name.trim(),
+          booking_date: format(selectedDate, 'yyyy-MM-dd'),
+          booking_time: selectedTime,
+          duration_hours: selectedDuration,
+        },
+      ]);
+
       setBookingMessage(
-        `Booking for ${name.trim()} on ${selectedDate.toLocaleDateString()} at ${selectedTime} confirmed!`,
+        `Booking for ${name.trim()} on ${selectedDate.toLocaleDateString()} at ${selectedTime} for ${selectedDuration} hour${selectedDuration > 1 ? 's' : ''} confirmed!`,
       );
 
       // Send email confirmation (await so errors are visible in logs)
@@ -160,8 +270,8 @@ export default function RoomBookingPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: email.trim(),
-            subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)}`,
-            html: `<p>Hi ${name.trim()},</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong>.</p>`,
+            subject: `Booking confirmed for ${format(selectedDate, 'PPP')} at ${formatTimeForDisplay(selectedTime)} (${selectedDuration}h)`,
+            html: `<p>Hi ${name.trim()},</p><p>Your booking is confirmed for <strong>${format(selectedDate, 'PPP')}</strong> at <strong>${formatTimeForDisplay(selectedTime)}</strong> for <strong>${selectedDuration} hour${selectedDuration > 1 ? 's' : ''}</strong>.</p>`,
           }),
         });
         const json = await response.json().catch(() => ({}));
@@ -177,6 +287,7 @@ export default function RoomBookingPage() {
         setName('');
         setEmail('');
         setSelectedTime('');
+        setSelectedDuration(1);
         setBookingMessage('');
       }, 3000);
     } catch (error) {
@@ -209,6 +320,8 @@ export default function RoomBookingPage() {
                 onDateSelect={setSelectedDate}
                 selectedTime={selectedTime}
                 onTimeSelect={setSelectedTime}
+                selectedDuration={selectedDuration}
+                onDurationChange={setSelectedDuration}
                 rooms={rooms}
                 selectedRoom={selectedRoom}
                 bookings={bookings}
@@ -219,6 +332,18 @@ export default function RoomBookingPage() {
                 selectedRoom={selectedRoom}
                 onRoomSelect={setSelectedRoom}
                 loading={loading}
+              />
+            </div>
+
+            {/* Calendar View */}
+            <div className="mt-8">
+              <BookingCalendar
+                rooms={rooms}
+                bookingDetails={bookingDetails}
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                currentWeek={currentWeek}
+                onWeekChange={setCurrentWeek}
               />
             </div>
 

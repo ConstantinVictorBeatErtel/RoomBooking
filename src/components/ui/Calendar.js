@@ -83,7 +83,7 @@ const Calendar = ({ selected, onSelect, _mode = 'single' }) => {
       </div>
       <div className="grid grid-cols-7 gap-1 text-center">
         {/* Day headers using our medium neutral color for secondary text */}
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
+        {['S', 'M', 'T', 'W', 'Th', 'F', 'Sa'].map(day => (
           <div
             key={day}
             className="text-sm font-medium text-neutral-medium p-2"
