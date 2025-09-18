@@ -300,10 +300,11 @@ export default function RoomBookingPage() {
     <div className="w-full mx-auto p-4">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="bg-brand-blue text-white p-8 shadow-md">
-          <h1 className="text-3xl font-bold text-center">Book a Room</h1>
-          <p className="text-center text-white mt-2">
-            Select your preferred date and time
-          </p>
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-brand-gold mb-2">
+              Berkeley Master of Analytics - Blum Hall Room Scheduler
+            </h2>
+          </div>
         </div>
 
         <div className="p-6">
