@@ -326,7 +326,7 @@ const BookingCalendar = ({
                               top: '2px',
                               left: '0',
                               width: 'calc(100% - 2px)',
-                              height: `${booking.duration_hours * 40 - 4}px`,
+                              height: `${booking.duration_hours * 48 - 4}px`,
                               zIndex: 10,
                             }}
                           >
@@ -354,7 +354,7 @@ const BookingCalendar = ({
                             top: '2px',
                             left: `calc(${laneWidthPercent * laneIndex}%)`,
                             width: `calc(${laneWidthPercent}% - ${gapPx}px)`,
-                            height: `${booking.duration_hours * 40 - 4}px`,
+                            height: `${booking.duration_hours * 48 - 4}px`,
                             zIndex: 10,
                           }}
                         />
