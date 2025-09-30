@@ -10,6 +10,10 @@ import {
   isSameDay,
   isToday,
   parseISO,
+  setSeconds,
+  setMinutes,
+  setHours,
+  isBefore,
 } from 'date-fns';
 import clsx from 'clsx';
 
@@ -37,6 +41,12 @@ const BookingCalendar = ({
   const filteredBookingDetails = selectedRoomId
     ? bookingDetails.filter(booking => booking.room_id === selectedRoomId)
     : bookingDetails;
+
+  // function for checking if the slot is in the past
+  function isSlotInPast(date, hour) {
+    const slotDateTime = setSeconds(setMinutes(setHours(new Date(date), hour), 0), 0);
+    return isBefore(slotDateTime, new Date());
+  }
 
   // Create lane mapping: sort rooms alphabetically and assign lane index
   const getRoomLane = roomId => {
@@ -127,6 +137,8 @@ const BookingCalendar = ({
   const handleMouseDown = (date, hour) => {
     if (!selectedRoomId) return; // Only in single room view
     if (isSlotOccupied(date, hour)) return; // Can't start on occupied slot
+
+    if (isSlotInPast(date, hour)) return;
     
     // Clear any pending selection when starting new drag
     if (onPendingSelectionClear) {
@@ -289,9 +301,14 @@ const BookingCalendar = ({
                     key={`${day.toISOString()}-${hour}`}
                     className={clsx(
                       'h-12 border-b border-gray-200 relative',
-                      selectedRoomId && !slotOccupied
-                        ? 'cursor-pointer hover:bg-gray-50'
-                        : 'cursor-default',
+                      // if the slot is in the past: always gray out, gray text, show not-allowed
+                      isSlotInPast(day, hour)
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        // if a room is selected and the slot isn't occupied, point and hover
+                        : selectedRoomId && !slotOccupied
+                          ? 'cursor-pointer hover:bg-gray-50'
+                          // else, default
+                          : 'cursor-default',
                     )}
                     style={{
                       backgroundColor:
