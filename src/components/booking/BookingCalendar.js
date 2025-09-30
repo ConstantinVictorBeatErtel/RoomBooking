@@ -16,8 +16,6 @@ import clsx from 'clsx';
 const BookingCalendar = ({
   rooms,
   bookingDetails,
-  selectedDate,
-  onDateSelect,
   currentWeek,
   onWeekChange,
   selectedRoomId,
@@ -25,7 +23,6 @@ const BookingCalendar = ({
   onPendingSelectionClear,
   onTimeSelect,
 }) => {
-  console.log('selectedDate', selectedDate);
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday start
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i)); // Monday to Friday only
 
@@ -302,7 +299,6 @@ const BookingCalendar = ({
                           ? `${getRoomColorHex(selectedRoomId)}33`
                           : undefined,
                     }}
-                    onClick={() => onDateSelect(day)}
                     onMouseDown={() => handleMouseDown(day, hour)}
                     onMouseEnter={() => handleMouseEnter(day, hour)}
                     onMouseUp={handleMouseUp}

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { format, startOfWeek, addDays, parseISO } from 'date-fns';
 import RoomSelector from './booking/RoomSelector';
 import BookingForm from './booking/BookingForm';
-import { getBerkeleyEmailError } from '../utils/validation';
+import { validateBerkeleyEmail, validateBooking } from '../utils/validation';
 import BookingCalendar from './booking/BookingCalendar';
 
 // Check if supabase client is initialized
@@ -119,18 +119,13 @@ export default function RoomBookingPage() {
       const bookingRoom = pendingSelection.roomId;
 
       if (!name.trim() || !email.trim()) {
-        setBookingMessage('Please fill in all required fields.');
-        return;
+        throw new Error('Please fill in all the required fields');
       }
 
-      // Validate Berkeley email
-      const emailError = getBerkeleyEmailError(email);
-      if (emailError) {
-        setBookingMessage(emailError);
-        return;
-      }
+      // validate Berkeley email
+      validateBerkeleyEmail(email);
 
-      // First, check if person exists by email (since email is unique)
+      // grab the person's ID
       let personId;
       const { data: existingPerson, error: searchError } = await supabase
         .from('person')
@@ -146,40 +141,6 @@ export default function RoomBookingPage() {
       if (existingPerson) {
         // Person exists, use their ID
         personId = existingPerson.id;
-
-        // GUARD: Check for back-to-back bookings by the same person
-        const dateString = format(bookingDate, 'yyyy-MM-dd');
-        const { data: existingBookings, error: bookingCheckError } =
-          await supabase
-            .from('bookings')
-            .select('booking_time, duration_hours')
-            .eq('person_id', personId)
-            .eq('room_id', bookingRoom)
-            .eq('booking_date', dateString);
-
-        if (bookingCheckError) throw bookingCheckError;
-
-        // GUARD: Check if this would create a back-to-back booking
-        const selectedStartHour = parseInt(bookingTime.split(':')[0]);
-        const selectedEndHour = selectedStartHour + bookingDuration;
-
-        for (const booking of existingBookings) {
-          const bookingStartHour = parseInt(booking.booking_time.split(':')[0]);
-          const bookingEndHour = bookingStartHour + booking.duration_hours;
-
-          // GUARD: Check for overlap or immediate adjacency
-          if (
-            (selectedStartHour < bookingEndHour &&
-              selectedEndHour > bookingStartHour) ||
-            selectedStartHour === bookingEndHour ||
-            selectedEndHour === bookingStartHour
-          ) {
-            setBookingMessage(
-              'You already have a booking for this room at this time or an adjacent time. Please choose a different time slot.',
-            );
-            return;
-          }
-        }
       } else {
         // Person doesn't exist, create new person
         const { data: newPerson, error: createError } = await supabase
@@ -192,6 +153,16 @@ export default function RoomBookingPage() {
 
         personId = newPerson.id;
       }
+      
+      // Validate the booking
+      await validateBooking({
+        supabase,
+        personId,
+        roomId: pendingSelection.roomId,
+        date: bookingDate,
+        startTime: pendingSelection.startTime,
+        duration: pendingSelection.duration,
+      });
 
       // Now create the booking with the person_id and duration
       const bookingData = {
@@ -220,7 +191,8 @@ export default function RoomBookingPage() {
       fetchBookingDetails();
     } catch (error) {
       console.error('Error creating booking:', error);
-      setBookingMessage('Error creating booking. Please try again.');
+      setBookingMessage(error.message);
+      setBookingStatus('idle');
     }
   };
 
