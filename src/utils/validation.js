@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parse, isBefore } from 'date-fns';
 
 export const validateBerkeleyEmail = email => {
   if (!email || typeof email !== 'string' || email.trim() === '') {
@@ -62,6 +62,7 @@ export const validateBooking = async({
   const selectedStartHour = parseInt(startTime.split(':')[0]);
   const selectedEndHour = selectedStartHour + duration;
 
+  // Check if the booker has made adjacent bookings
   for (const booking of existingBookings) {
     const bookingStartHour = parseInt(booking.booking_time.split(':')[0]);
     const bookingEndHour = bookingStartHour + booking.duration_hours;
@@ -73,11 +74,17 @@ export const validateBooking = async({
       selectedEndHour === bookingStartHour;
 
     if (hasOverlap) {
-      // Throw a new error with a user-friendly message
+      // Throw a new error
       throw new Error(
         'You already have a booking for this room at this time or an adjacent time.',
       );
     }
+  }
+
+  // Check if the booking is in the past
+  const bookingDateTime = parse(`${dateString} ${startTime}`, 'yyyy-MM-dd HH:mm:ss', new Date());
+  if (isBefore(bookingDateTime, new Date())) {
+    throw new Error('Cannot make a booking in the past');
   }
 
   // If we get here, the booking is valid, so we do nothing.
