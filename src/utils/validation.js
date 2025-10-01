@@ -49,6 +49,11 @@ export const validateBooking = async({
   startTime,
   duration,
 }) => {
+  // Check maximum duration of 3 hours
+  if (duration > 3) {
+    throw new Error('Bookings cannot exceed 3 hours');
+  }
+
   const dateString = format(date, 'yyyy-MM-dd');
   const { data: existingBookings, error } = await supabase
     .from('bookings')

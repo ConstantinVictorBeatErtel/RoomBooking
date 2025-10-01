@@ -153,11 +153,11 @@ const BookingCalendar = ({
   const handleMouseEnter = (date, hour) => {
     if (!isDragging || !selectionStart) return;
     if (!isSameDay(date, selectionStart.date)) return; // Same day only
-    
+
     // Check if we hit an occupied slot
     const direction = hour > selectionStart.hour ? 1 : -1;
     const currentHour = selectionEnd?.hour ?? selectionStart.hour;
-    
+
     // Moving to new hour
     if (direction > 0) {
       // Moving down - check all slots between current and target
@@ -168,6 +168,12 @@ const BookingCalendar = ({
           return;
         }
       }
+      // Enforce 3-hour maximum
+      const maxHour = selectionStart.hour + 2; // +2 because we want 3 hours total (start hour + 2 more)
+      if (hour > maxHour) {
+        setSelectionEnd({ date, hour: maxHour });
+        return;
+      }
     } else {
       // Moving up - check all slots between target and current
       for (let h = hour; h < currentHour; h++) {
@@ -177,8 +183,14 @@ const BookingCalendar = ({
           return;
         }
       }
+      // Enforce 3-hour maximum when dragging upward
+      const minHour = selectionStart.hour - 2; // -2 because we want 3 hours total
+      if (hour < minHour) {
+        setSelectionEnd({ date, hour: minHour });
+        return;
+      }
     }
-    
+
     setSelectionEnd({ date, hour });
   };
 
