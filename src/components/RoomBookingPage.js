@@ -5,6 +5,10 @@ import RoomSelector from './booking/RoomSelector';
 import BookingForm from './booking/BookingForm';
 import { validateBerkeleyEmail, validateBooking } from '../utils/validation';
 import BookingCalendar from './booking/BookingCalendar';
+import { useAuth } from '../contexts/AuthContext';
+import AuthForm from './auth/AuthForm';
+import { Button } from './ui';
+import { LogOut } from 'lucide-react';
 
 // Check if supabase client is initialized
 if (!supabase) {
@@ -14,6 +18,7 @@ if (!supabase) {
 }
 
 export default function RoomBookingPage() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [pendingSelection, setPendingSelection] = useState(null);
   const [name, setName] = useState('');
@@ -69,6 +74,7 @@ export default function RoomBookingPage() {
           duration_hours,
           room_id,
           person_id,
+          user_id,
           person (name)
         `,
         )
@@ -87,6 +93,7 @@ export default function RoomBookingPage() {
         booking_date: booking.booking_date,
         booking_time: booking.booking_time,
         duration_hours: booking.duration_hours,
+        user_id: booking.user_id,
       }));
 
       setBookingDetails(transformedBookings);
@@ -99,6 +106,26 @@ export default function RoomBookingPage() {
   useEffect(() => {
     fetchBookingDetails();
   }, [fetchBookingDetails]);
+
+  // Handle booking deletion
+  const handleDeleteBooking = async (bookingId) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      // Refresh bookings after successful deletion
+      fetchBookingDetails();
+      setBookingMessage('Booking deleted successfully');
+      setTimeout(() => setBookingMessage(''), 3000);
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      setBookingMessage(error.message || 'Failed to delete booking');
+    }
+  };
 
   // what happens when we hit submit?
   const handleBookingSubmit = async e => {
@@ -164,13 +191,14 @@ export default function RoomBookingPage() {
         duration: pendingSelection.duration,
       });
 
-      // Now create the booking with the person_id and duration
+      // Now create the booking with the person_id, duration, and user_id
       const bookingData = {
         booking_date: format(bookingDate, 'yyyy-MM-dd'),
         booking_time: bookingTime,
         duration_hours: bookingDuration,
         room_id: bookingRoom,
         person_id: personId,
+        user_id: user.id, // Add authenticated user ID
       };
 
       const { error: bookingError } = await supabase
@@ -196,16 +224,60 @@ export default function RoomBookingPage() {
     }
   };
 
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="w-full mx-auto p-4">
+        <div className="bg-white shadow-lg rounded-lg p-8">
+          <p className="text-center text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth form if user is not logged in
+  if (!user) {
+    return (
+      <div className="w-full mx-auto p-4">
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+          <div className="bg-brand-blue text-white p-8 shadow-md">
+            <h1 className="text-3xl font-bold text-center">
+              Blum Hall Room Booker
+            </h1>
+            <p className="text-center text-white mt-2">
+              Sign in to book rooms in Blum Hall
+            </p>
+          </div>
+          <div className="p-6">
+            <AuthForm />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full mx-auto p-4">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="bg-brand-blue text-white p-8 shadow-md">
-          <h1 className="text-3xl font-bold text-center">
-            Blum Hall Room Booker
-          </h1>
-          <p className="text-center text-white mt-2">
-            Book any of the rooms in Blum Hall for your study group
-          </p>
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-center">
+                Blum Hall Room Booker
+              </h1>
+              <p className="text-center text-white mt-2">
+                Book any of the rooms in Blum Hall for your study group
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={signOut}
+              className="ml-4 flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <div className="p-6">
@@ -258,6 +330,8 @@ export default function RoomBookingPage() {
                   setPendingSelection(selection);
                   setIsFormVisible(true);
                 }}
+                currentUserId={user?.id}
+                onDeleteBooking={handleDeleteBooking}
               />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Info } from 'lucide-react'; // 1. Make sure to import the Info icon
+import { Info, Trash2 } from 'lucide-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   format,
@@ -26,6 +26,8 @@ const BookingCalendar = ({
   pendingSelection,
   onPendingSelectionClear,
   onTimeSelect,
+  currentUserId,
+  onDeleteBooking,
 }) => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday start
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i)); // Monday to Friday only
@@ -339,12 +341,13 @@ const BookingCalendar = ({
 
                       // Single-room view: wide pill with person name
                       if (selectedRoomId) {
+                        const isOwnBooking = currentUserId && booking.user_id === currentUserId;
                         return (
                           <div
                             key={booking.id}
                             className={clsx(
                               'absolute rounded shadow-sm text-white font-medium',
-                              'flex items-center justify-center text-xs',
+                              'flex items-center justify-between text-xs px-2',
                               getRoomColor(booking.room_id),
                             )}
                             style={{
@@ -355,9 +358,23 @@ const BookingCalendar = ({
                               zIndex: 10,
                             }}
                           >
-                            <span className="truncate px-1">
+                            <span className="truncate">
                               {booking.person_name}
                             </span>
+                            {isOwnBooking && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('Are you sure you want to delete this booking?')) {
+                                    onDeleteBooking(booking.id);
+                                  }
+                                }}
+                                className="ml-2 p-1 hover:bg-white/20 rounded transition-colors"
+                                title="Delete booking"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </div>
                         );
                       }
