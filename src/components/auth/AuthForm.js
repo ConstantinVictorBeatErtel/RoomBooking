@@ -12,7 +12,7 @@ const AuthForm = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -43,7 +43,7 @@ const AuthForm = ({ onSuccess }) => {
           label="Email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           placeholder="your.email@berkeley.edu"
           required
         />
@@ -52,7 +52,7 @@ const AuthForm = ({ onSuccess }) => {
           label="Password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           placeholder="Enter your password"
           required
         />
@@ -73,7 +73,7 @@ const AuthForm = ({ onSuccess }) => {
             'mt-4 p-4 rounded-md flex items-center border',
             error.includes('email') && !error.includes('invalid')
               ? 'bg-blue-50 border-blue-300 text-blue-700'
-              : 'bg-red-50 border-red-300 text-red-700'
+              : 'bg-red-50 border-red-300 text-red-700',
           )}
         >
           <AlertCircle className="mr-2 h-5 w-5" />

@@ -108,7 +108,7 @@ export default function RoomBookingPage() {
   }, [fetchBookingDetails]);
 
   // Handle booking deletion
-  const handleDeleteBooking = async (bookingId) => {
+  const handleDeleteBooking = async bookingId => {
     try {
       const { error } = await supabase
         .from('bookings')

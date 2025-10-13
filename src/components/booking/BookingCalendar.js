@@ -363,7 +363,7 @@ const BookingCalendar = ({
                             </span>
                             {isOwnBooking && (
                               <button
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.stopPropagation();
                                   if (window.confirm('Are you sure you want to delete this booking?')) {
                                     onDeleteBooking(booking.id);
