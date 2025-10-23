@@ -107,14 +107,38 @@ export default function RoomBookingPage() {
 
   // Handle booking deletion
   const handleDeleteBooking = async bookingId => {
+    console.log('Attempting to delete booking:', bookingId);
+    console.log('Current user email:', user?.email);
+
     try {
-      const { error } = await supabase
+      // First, verify the booking belongs to the user
+      const booking = bookingDetails.find(b => b.id === bookingId);
+      if (!booking) {
+        throw new Error('Booking not found');
+      }
+
+      console.log('Booking to delete:', booking);
+      console.log('Booking person email:', booking.person_email);
+
+      if (booking.person_email !== user?.email) {
+        throw new Error('You can only delete your own bookings');
+      }
+
+      // Delete the booking
+      const { data, error } = await supabase
         .from('bookings')
         .delete()
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .select();
 
-      if (error) throw error;
+      console.log('Delete response:', { data, error });
 
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+
+      console.log('Booking deleted successfully, refreshing...');
       // Refresh bookings after successful deletion
       await fetchBookingDetails();
       setBookingMessage('Booking deleted successfully');
@@ -122,6 +146,7 @@ export default function RoomBookingPage() {
     } catch (error) {
       console.error('Error deleting booking:', error);
       setBookingMessage(error.message || 'Failed to delete booking');
+      alert(`Failed to delete booking: ${error.message}`);
     }
   };
 
