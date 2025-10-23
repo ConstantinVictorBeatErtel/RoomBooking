@@ -138,6 +138,14 @@ export default function RoomBookingPage() {
         throw error;
       }
 
+      // Check if any rows were actually deleted
+      if (!data || data.length === 0) {
+        throw new Error(
+          'Booking was not deleted. This is likely due to Row Level Security (RLS) policies in Supabase. ' +
+          'Please check your Supabase database RLS settings for the bookings table.'
+        );
+      }
+
       console.log('Booking deleted successfully, refreshing...');
       // Refresh bookings after successful deletion
       await fetchBookingDetails();
