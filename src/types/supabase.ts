@@ -39,6 +39,7 @@ export type Database = {
           booking_date: string
           booking_time: string
           created_at: string
+          duration_hours: number | null
           id: number
           person_id: number | null
           room_id: number | null
@@ -48,6 +49,7 @@ export type Database = {
           booking_date: string
           booking_time: string
           created_at?: string
+          duration_hours?: number | null
           id?: never
           person_id?: number | null
           room_id?: number | null
@@ -57,6 +59,7 @@ export type Database = {
           booking_date?: string
           booking_time?: string
           created_at?: string
+          duration_hours?: number | null
           id?: never
           person_id?: number | null
           room_id?: number | null

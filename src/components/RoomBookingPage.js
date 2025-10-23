@@ -21,8 +21,6 @@ export default function RoomBookingPage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [pendingSelection, setPendingSelection] = useState(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [bookingMessage, setBookingMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState([]);
@@ -74,7 +72,6 @@ export default function RoomBookingPage() {
           duration_hours,
           room_id,
           person_id,
-          user_id,
           person (name)
         `,
         )
@@ -93,7 +90,7 @@ export default function RoomBookingPage() {
         booking_date: booking.booking_date,
         booking_time: booking.booking_time,
         duration_hours: booking.duration_hours,
-        user_id: booking.user_id,
+        person_id: booking.person_id,
       }));
 
       setBookingDetails(transformedBookings);
@@ -138,6 +135,8 @@ export default function RoomBookingPage() {
     setBookingMessage('');
 
     try {
+      // Use authenticated user's email
+      const userEmail = user.email;
 
       // Use pendingSelection exclusively
       const bookingDate = parseISO(pendingSelection.date);
@@ -145,19 +144,19 @@ export default function RoomBookingPage() {
       const bookingDuration = pendingSelection.duration;
       const bookingRoom = pendingSelection.roomId;
 
-      if (!name.trim() || !email.trim()) {
-        throw new Error('Please fill in all the required fields');
+      if (!userEmail) {
+        throw new Error('User email not found. Please sign in again.');
       }
 
       // validate Berkeley email
-      validateBerkeleyEmail(email);
+      validateBerkeleyEmail(userEmail);
 
-      // grab the person's ID
+      // grab the person's ID or create person record
       let personId;
       const { data: existingPerson, error: searchError } = await supabase
         .from('person')
         .select('id, name')
-        .eq('email', email.trim())
+        .eq('email', userEmail)
         .single();
 
       if (searchError && searchError.code !== 'PGRST116') {
@@ -169,10 +168,10 @@ export default function RoomBookingPage() {
         // Person exists, use their ID
         personId = existingPerson.id;
       } else {
-        // Person doesn't exist, create new person
+        // Person doesn't exist, create new person with email as name (can be updated later)
         const { data: newPerson, error: createError } = await supabase
           .from('person')
-          .insert([{ name: name.trim(), email: email.trim() }])
+          .insert([{ name: userEmail.split('@')[0], email: userEmail }])
           .select('id')
           .single();
 
@@ -191,14 +190,13 @@ export default function RoomBookingPage() {
         duration: pendingSelection.duration,
       });
 
-      // Now create the booking with the person_id, duration, and user_id
+      // Now create the booking with the person_id and duration
       const bookingData = {
         booking_date: format(bookingDate, 'yyyy-MM-dd'),
         booking_time: bookingTime,
         duration_hours: bookingDuration,
         room_id: bookingRoom,
         person_id: personId,
-        user_id: user.id, // Add authenticated user ID
       };
 
       const { error: bookingError } = await supabase
@@ -213,8 +211,6 @@ export default function RoomBookingPage() {
       // refresh everything
       setPendingSelection(null);
       setIsFormVisible(false);
-      setName('');
-      setEmail('');
       setBookingStatus('idle');
       fetchBookingDetails();
     } catch (error) {
@@ -307,11 +303,8 @@ export default function RoomBookingPage() {
                     status={bookingStatus}
                     onSubmit={handleBookingSubmit}
                     selectionDetails={pendingSelection}
-                    name={name}
-                    onNameChange={e => setName(e.target.value)}
-                    email={email}
-                    onEmailChange={e => setEmail(e.target.value)}
                     bookingMessage={bookingMessage}
+                    userEmail={user?.email}
                   />
                 </div>
               )}

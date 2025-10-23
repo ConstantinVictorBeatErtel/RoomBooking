@@ -1,18 +1,15 @@
 import { Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { Button, Input } from '../ui';
+import { Button } from '../ui';
 import clsx from 'clsx';
 import { format, parseISO } from 'date-fns';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 const BookingForm = ({
-  status, 
+  status,
   onSubmit,
-  name,
-  onNameChange,
-  email,
-  onEmailChange,
   bookingMessage,
   selectionDetails,
+  userEmail,
 }) => {
   // GUARD to prevent rendering "null"
   if (!selectionDetails) {
@@ -60,7 +57,7 @@ const BookingForm = ({
       <>
         <h2 className="text-2xl font-semibold mb-6 text-gray-700">
           {/* <User className="mr-3 h-6 w-6" /> */}
-          Your Details
+          Confirm Booking
         </h2>
 
         {/* Booking display */}
@@ -77,25 +74,13 @@ const BookingForm = ({
           </div>
         </div>
 
+        {/* Display logged-in user email */}
+        <div className="mb-6 p-4 rounded-lg border bg-blue-50 space-y-1">
+          <p className="text-sm text-gray-600">Booking as:</p>
+          <p className="font-medium text-gray-700">{userEmail}</p>
+        </div>
+
         <form onSubmit={onSubmit} className="space-y-6">
-          <Input
-            label="Name"
-            type="text"
-            value={name}
-            onChange={onNameChange}
-            placeholder="Enter your full name"
-            required
-          />
-
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={onEmailChange}
-            placeholder="Enter your Berkeley email (someone@berkeley.edu)"
-            required
-          />
-
           <Button
             type="submit"
             variant="primary"
