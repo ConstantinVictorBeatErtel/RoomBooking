@@ -384,12 +384,13 @@ const BookingCalendar = ({
                       const totalRooms = rooms.length;
                       const laneWidthPercent = 100 / totalRooms;
                       const gapPx = 2;
+                      const isOwnBooking = currentUserEmail && booking.person_email === currentUserEmail;
 
                       return (
                         <div
                           key={booking.id}
                           className={clsx(
-                            'absolute rounded shadow-sm',
+                            'absolute rounded shadow-sm text-white flex items-center justify-center',
                             getRoomColor(booking.room_id),
                           )}
                           style={{
@@ -399,7 +400,22 @@ const BookingCalendar = ({
                             height: `${booking.duration_hours * 48 - 4}px`,
                             zIndex: 10,
                           }}
-                        />
+                        >
+                          {isOwnBooking && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                if (window.confirm('Are you sure you want to delete this booking?')) {
+                                  onDeleteBooking(booking.id);
+                                }
+                              }}
+                              className="p-1 hover:bg-white/20 rounded transition-colors"
+                              title="Delete booking"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

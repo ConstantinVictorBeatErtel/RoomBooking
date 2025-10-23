@@ -116,7 +116,7 @@ export default function RoomBookingPage() {
       if (error) throw error;
 
       // Refresh bookings after successful deletion
-      fetchBookingDetails();
+      await fetchBookingDetails();
       setBookingMessage('Booking deleted successfully');
       setTimeout(() => setBookingMessage(''), 3000);
     } catch (error) {
