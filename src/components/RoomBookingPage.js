@@ -72,7 +72,7 @@ export default function RoomBookingPage() {
           duration_hours,
           room_id,
           person_id,
-          person (name)
+          person (name, email)
         `,
         )
         .gte('booking_date', startDateString)
@@ -87,6 +87,7 @@ export default function RoomBookingPage() {
         id: booking.id,
         room_id: booking.room_id,
         person_name: booking.person?.name || 'Unknown',
+        person_email: booking.person?.email || '',
         booking_date: booking.booking_date,
         booking_time: booking.booking_time,
         duration_hours: booking.duration_hours,
@@ -323,7 +324,7 @@ export default function RoomBookingPage() {
                   setPendingSelection(selection);
                   setIsFormVisible(true);
                 }}
-                currentUserId={user?.id}
+                currentUserEmail={user?.email}
                 onDeleteBooking={handleDeleteBooking}
               />
             </div>

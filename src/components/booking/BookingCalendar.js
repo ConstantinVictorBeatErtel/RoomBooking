@@ -26,7 +26,7 @@ const BookingCalendar = ({
   pendingSelection,
   onPendingSelectionClear,
   onTimeSelect,
-  currentUserId,
+  currentUserEmail,
   onDeleteBooking,
 }) => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday start
@@ -341,7 +341,7 @@ const BookingCalendar = ({
 
                       // Single-room view: wide pill with person name
                       if (selectedRoomId) {
-                        const isOwnBooking = currentUserId && booking.user_id === currentUserId;
+                        const isOwnBooking = currentUserEmail && booking.person_email === currentUserEmail;
                         return (
                           <div
                             key={booking.id}
